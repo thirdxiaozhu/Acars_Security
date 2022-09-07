@@ -27,6 +27,7 @@ class Modulation:
 
         cpfsk =np.cos(2*np.pi*(1+fmR)*tsR + thetaR)
 
+
         return cpfsk
 
 
@@ -36,7 +37,9 @@ class Modulation:
         f_s2 = 2
 
         cpfskR = np.repeat(cpfsk, f_s2)
+        print(len(cpfskR))
         t = np.arange(0, ((len(cpfskR)-1)/f_s2) + 1/f_s2, 1/f_s2)
+        print(len(t))
         ct = Ac * np.cos(2.0*np.pi*t)
         AM = ct*(1+cpfskR)
 

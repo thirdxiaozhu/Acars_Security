@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/jiaxv/inoproject/Acars_Simulator/MainForm.ui'
+# Form implementation generated from reading ui file '/home/jiaxv/inoproject/Acars_Security/MainForm.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.6
 #
@@ -565,6 +565,7 @@ class Ui_MainWindow(object):
         self.dubiLabel.setText(_translate("MainWindow", "UBI"))
         self.dubiInput.setText(_translate("MainWindow", "A"))
         self.label_6.setText(_translate("MainWindow", "ACK"))
+        self.takInput.setText(_translate("MainWindow", "A"))
         self.label_7.setText(_translate("MainWindow", "Text"))
         self.text.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"

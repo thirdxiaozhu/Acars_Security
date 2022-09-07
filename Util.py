@@ -121,9 +121,13 @@ def getCRC16(message):
     crc_reg = 0x0000
     for i in message:
         crc_reg = TABLE_FOR_CRC16_CCITT[(crc_reg ^ i) & 0xFF] ^ (crc_reg >> 8)
+    print(crc_reg)
     
     crc_string = "{:016b}".format(crc_reg).replace("0b","")[::-1]
 
+    print(crc_string)
+    print(int(crc_string[:8],2))
+    print(int(crc_string[8:],2))
     ret.append(chr(int(crc_string[:8],2)))
     ret.append(chr(int(crc_string[8:],2)))
 
@@ -203,12 +207,12 @@ def filter(b,a,x):
             for j in range(len(b)):
                 if i >= j :
                     y[i] = y[i] + b[j] * x[i - j ]
-                    j += 1
+                    #j += 1
             for l in range(len(b)-1 ):
                 if i >l:
                     y[i] = (y[i] - a[l+1] * y[i -l-1])
-                    l += 1
-            i += 1
+                    #l += 1
+            #i += 1
         return y
 
 #def int8_to_unsigned_hex(integer):

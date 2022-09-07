@@ -103,7 +103,7 @@ class Event(QtCore.QObject):
         self.text = self.textEdit.toPlainText()
 
         if self.modeInput != "2":
-            QMessageBox.critical(None, "Error", "Only mode a is supported temporarily!", QMessageBox.Yes)
+            QMessageBox.critical(None, "Error", "Only mode A is supported temporarily!", QMessageBox.Yes)
             return self.FAIL
         if not arn_pattern.match(self.arnInput):
             QMessageBox.critical(None, "Error", "Illegal Arn character!", QMessageBox.Yes)
@@ -177,6 +177,7 @@ class Event(QtCore.QObject):
         for i in tempMsg:
             temp = "{:08b}".format(i).replace("0b", "")
             pre_diff.extend(temp)
+
 
         ###################   差分编码   ############################
         diff.append(int(pre_diff[0]))

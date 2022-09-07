@@ -290,8 +290,9 @@ if __name__ == "__main__":
     #iq.write_gnuradio_IQ_file("/home/jiaxv/inoproject/msk/10001000.txt", "fffff.iq", mode="complex")
     #iq.read_gnuradio_IQ_file("../complex.bin", mode="complex")
     #iq.write_hackrf_IQ_file("/home/jiaxv/inoproject/msk/11111111.txt", "int8.iq")
-    iq.read_hackrf_IQ_file("/home/jiaxv/inoproject/msk/acarsgen/poa_1M152.cs8")
-    iq.read_hackrf_IQ_file("/home/jiaxv/inoproject/msk/acarsgen/int8.cs8")
+    #iq.read_hackrf_IQ_file("/home/jiaxv/inoproject/msk/acarsgen/poa_1M152.cs8")
+    iq.read_hackrf_IQ_file("/home/jiaxv/inoproject/Acars_Sim_C/test.txt")
+    #iq.read_hackrf_IQ_file("/home/jiaxv/inoproject/msk/acarsgen/int8.cs8")
     #print(iq.int8_to_unsigned_hex(255))
 
 

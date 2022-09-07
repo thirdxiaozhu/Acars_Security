@@ -123,7 +123,9 @@ class HackRfEvent(multiprocessing.Process):
 
     def initContext(self):
         self._tx_context = hackrf_tx_context()
+        print(self.int8Stream[:10])
         data = bytearray(self.int8Stream)
+        print(data[:10])
         length = len(data)
         if length != 0:
             self._tx_context.last_tx_pos = 0

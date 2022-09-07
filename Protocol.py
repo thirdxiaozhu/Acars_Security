@@ -69,7 +69,8 @@ class Protocol:
     def getTail(self):
         tail = []
         tail.extend(self.processTextToLSB([self.suffix]))
-        tail.extend(Util.getCRC16(self.crcStream[5:]))  #16bytes pre_key + 4同步byte + SOH
+        print(self.crcStream[5:])
+        tail.extend(Util.getCRC16(self.crcStream[5:]))  #14同步byte + SOH
         tail.extend(self.processTextToLSB([self.bcssuf]))
 
         return tail
@@ -90,6 +91,7 @@ class Protocol:
 
             ret.append(chr(int(temp[::-1],2)))
             self.crcStream.append(int(hex(int(temp,2)),16))
+
         return ret
         
 
