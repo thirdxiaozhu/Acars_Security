@@ -1,8 +1,7 @@
 from os import times
 import socket
 from subprocess import Popen
-from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
+from time import sleep
 
 from Util import *
 import json
@@ -11,8 +10,10 @@ from datetime import datetime
 from rtlsdr import RtlSdr
 
 
-class Receiver(QtCore.QObject):
-    addMessageSignal = QtCore.pyqtSignal(str)
+MODE_DSP = 1001
+MODE_CMU = 1002
+
+class Receiver:
 
     downlinkhtml = '''
                 <div> 
@@ -42,100 +43,69 @@ class Receiver(QtCore.QObject):
                 '''
 
 
-    def __init__(self, mainWindow) -> None:
-        super(Receiver, self).__init__()
-        self.host = "127.0.0.1"
-        self.port = 5555
+    def __init__(self, serial, freq, addr, signal, mode) -> None:
+        #self.host = "127.0.0.1"
+        #self.port = 5555
+        self.addr = addr
         self.bufsize = 8192
-        self.addr = (self.host, self.port)
-        self.mainWindow = mainWindow
-        self.initReceiver()
-        self.initEvent()
-        self.getRtls()
+        self.addr_4_udp = (self.addr.split(":")[0], int(self.addr.split(":")[1]))
+        self.rtl_serial = serial
+        self.freq = freq
+        self.signal = signal
+        self.mode = mode
 
-    def initReceiver(self):
-        self.ipAddrEdit = self.mainWindow.findChild(QLineEdit, "AddressEdit")
-        self.portEdit = self.mainWindow.findChild(QLineEdit, "PortEdit")
-        self.recfreqEdit = self.mainWindow.findChild(QLineEdit, "ReceFreqEdit")
-        self.rtlCombo = self.mainWindow.findChild(QComboBox, "rtlcombo")
-        self.reloadRtlsBtn = self.mainWindow.findChild(QPushButton, "reloadRtlsBtn")
-        self.startrecBtn = self.mainWindow.findChild(
-            QPushButton, "StratReceiverBtn")
-        self.stoprecBtn = self.mainWindow.findChild(
-            QPushButton, "StopReceiverBtn")
-        self.refreshrecBtn = self.mainWindow.findChild(
-            QPushButton, "RefreshRecButton")
-        self.messageList = self.mainWindow.findChild(
-            QListWidget, "MessageList")
-        self.detailEdit = self.mainWindow.findChild(QTextEdit, "detailEdit")
+    #def reloadRtls(self):
+    #    for i in range(self.rtlCombo.count()):
+    #        self.rtlCombo.removeItem(0)
 
-    def initEvent(self):
-        self.startrecBtn.clicked.connect(self.startRecv)
-        self.stoprecBtn.clicked.connect(self.stopRecv)
-        self.refreshrecBtn.clicked.connect(self.refreshList)
-        self.reloadRtlsBtn.clicked.connect(self.reloadRtls)
-
-        self.addMessageSignal.connect(self.addMessage)
-
-        self.messageList.itemClicked.connect(
-            lambda: self.updateDetail())
-
-    def getRtls(self):
-        serial_numbers = RtlSdr.get_device_serial_addresses()
-        for i in range(len(serial_numbers)):
-            self.rtlCombo.addItem(str(i))
-
-    def reloadRtls(self):
-        for i in range(self.rtlCombo.count()):
-            self.rtlCombo.removeItem(0)
-
-        self.getRtls()
+    #    self.getRtls()
 
 
     def startRecv(self):
-        self.host = self.ipAddrEdit.text()
-        self.port = self.portEdit.text()
-        self.addr = (self.host, int(self.port))
-        self.freq = self.recfreqEdit.text()
-        self.rtl = self.rtlCombo.currentText()
-
         self.udpServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udpServer.bind(self.addr)
+        self.udpServer.bind(self.addr_4_udp)
         self.monitorThread = KThread(target=self.startMonitor)
         self.monitorThread.start()
         self.startAcarsdec()
 
     def startAcarsdec(self):
-        j = self.host + ":" + self.port
-        r = self.freq
-        d = self.rtl
-        self.acarsdec = Popen(
-            ["acarsdec", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+        #j = self.host + ":" + str(self.port)
+        j = self.addr
+        r = str(self.freq)
+        d = self.rtl_serial
+        if self.mode == MODE_DSP:
+            self.acarsdec = Popen(
+                ["./acarsdec","-D", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+        elif self.mode == MODE_CMU:
+            self.acarsdec = Popen(
+                ["./acarsdec","-U", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+        else:
+            return
 
     def startMonitor(self):
         print("Start monitoring")
         while True:
             data, xxx = self.udpServer.recvfrom(self.bufsize)
             data = data.decode()
-            self.addMessageSignal.emit(data)
+            self.signal.emit(data, self.mode)
 
-    def updateDetail(self):
-
-        self.detailEdit.clear()
-        dict = json.loads(self.messageList.selectedItems()[0].text())
-        timestamp = dict.get("timestamp") 
-        timestamp = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
-
-        block_id = dict.get("block_id")
-        pattern = re.compile(r"[A-Za-z]")
-        mode = pattern.match(block_id)
-        if mode is None:
-            self.detailEdit.append(
-                self.downlinkhtml % (timestamp, dict.get("freq"), dict.get("mode"), dict.get("label"), dict.get("tail"), dict.get("ack"), dict.get("block_id"),dict.get("flight"), dict.get("msgno"), dict.get("text")))
-        else:
-            self.detailEdit.append(
-                self.uplinkhtml % (timestamp, dict.get("freq"), dict.get("mode"), dict.get("label"), dict.get("tail"), dict.get("ack"), dict.get("block_id"),dict.get("text")))
-
+    #def updateDetail(self):
+#
+    #    self.detailEdit.clear()
+    #    dict = json.loads(self.messageList.selectedItems()[0].text())
+    #    timestamp = dict.get("timestamp") 
+    #    timestamp = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
+#
+    #    block_id = dict.get("block_id")
+    #    pattern = re.compile(r"[A-Za-z]")
+    #    mode = pattern.match(block_id)
+    #    if mode is None:
+    #        self.detailEdit.append(
+    #            self.downlinkhtml % (timestamp, dict.get("freq"), dict.get("mode"), dict.get("label"), dict.get("tail"), dict.get("ack"), dict.get("block_id"),dict.get("flight"), dict.get("msgno"), dict.get("text")))
+    #    else:
+    #        self.detailEdit.append(
+    #            self.uplinkhtml % (timestamp, dict.get("freq"), dict.get("mode"), dict.get("label"), dict.get("tail"), dict.get("ack"), dict.get("block_id"),dict.get("text")))
+#
 
             
 
@@ -165,11 +135,19 @@ class Receiver(QtCore.QObject):
         except AttributeError:
             pass
 
-    def refreshList(self):
-        self.detailEdit.clear()
-        if self.messageList.count()>0:
-            for i in range(self.messageList.count()-1,-1,-1):
-                   self.messageList.removeItemWidget(self.messageList.takeItem(i))
+    #def refreshList(self):
+    #    self.detailEdit.clear()
+    #    if self.messageList.count()>0:
+    #        for i in range(self.messageList.count()-1,-1,-1):
+    #               self.messageList.removeItemWidget(self.messageList.takeItem(i))
 
-    def addMessage(self, paraDict):
-        self.messageList.addItem(paraDict)
+    #def addMessage(self, paraDict):
+    #    self.messageList.addItem(paraDict)
+
+
+def getRtls():
+    serials = RtlSdr.get_device_serial_addresses()
+    devices = []
+    for i in range(len(serials)):
+        devices.append(str(i))
+    return devices

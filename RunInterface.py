@@ -2,19 +2,20 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 
-import Ui_EntryUI
+import Ui_MainInterface
+import Interface
 
 def main():
-    print(QStyleFactory.keys())
+    #print(QStyleFactory.keys())
     app = QApplication(sys.argv)
     mainWindow = QMainWindow()
-    ui = Ui_EntryUI.Ui_MainWindow()
+    ui = Ui_MainInterface.Ui_MainWindow()
     ui.setupUi(mainWindow)
-    #event = Event(mainWindow)
-    QApplication.setStyle("Breeze")
+    interface = Interface.Interface(mainWindow)
+    QApplication.setStyle("Oxygen")
     mainWindow.show()
     app.exec_()
-    #event.closeWindow()
+    interface.closeWindow()
 
 if __name__ == "__main__":
     main()

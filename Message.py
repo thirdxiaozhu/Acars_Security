@@ -1,70 +1,149 @@
-import base64
+from ctypes import *
+from ctypes import Structure
+import ctypes
 
-from gmssl.sm4 import CryptSM4, SM4_ENCRYPT, SM4_DECRYPT
-from gmssl import sm2, func, sm3
+import multiprocessing
+from unicodedata import name
 
-import Crypto
-import Util
 
+UPLINK = 0
+DOWNLINK = 1
+
+def kkk():
+    import test
+    p_conn, s_conn = multiprocessing.Pipe()
+    tt = test.Test(s_conn)
+    tt.start()
+    _IQdata = p_conn.recv()
+
+
+class message_format(Structure):
+    _fields_ = [("isUp", c_int),
+                ("mode", c_char),
+                ("arn", POINTER(c_ubyte)),
+                ("ack", c_char),
+                ("label", POINTER(c_ubyte)),
+                ("udbi", c_char),
+                ("serial", POINTER(c_ubyte)),
+                ("flight", POINTER(c_ubyte)),
+                ("text", POINTER(c_ubyte)),
+                ("text_len", c_int),
+                ("lsb_with_crc_msg", POINTER(c_ubyte)),
+                ("total_len", c_int),
+                ("complex_length", c_int),
+                ("cpfsk", POINTER(c_ubyte)),
+                ("complex_i8", POINTER(c_ubyte))]
+
+    def __init__(self):
+        self.complex_i8 = cast(create_string_buffer(96000*12*2), POINTER(c_ubyte))  #需要首先分配内存
 
 class Message:
-    PREVIEW = 1
-    SEND = 2
+    NORMAL = 0
 
-    def __init__(self, text):
-        self.text = text
-        self.key = b'1234567890123456'
-        self.keys = Crypto.Keys()
+    def __init__(self, up_down) -> None:
+        self._up_down = up_down
+        self._mode = None
+        self._label = None 
+        self._ARN = None
+        self._UDBI = None
+        self._ACK = None
+        self._serial = None
+        self._flight = None
+        self._text = None
+        self._IQdata = None
+        self._sec_level = None
 
-    def encrypt(self):
-        value = []
-        for i in range(len(self.text)):
-            value.append(Util.to6Bit(self.text[i]))
+    def setMode(self, mode):
+        self._mode = mode.encode()
 
-        
-        crypt = CryptSM4()
-        crypt.set_key(self.key, SM4_ENCRYPT)
-        return crypt.crypt_ecb(bytes(Util.loadCode(value)))
-        #return self.text
+    def setLabel(self, label):
+        self._label = label.encode()
 
-    def decrypt(self):
-        crypt = CryptSM4()
-        crypt.set_key(self.key, SM4_DECRYPT)
-        return crypt.crypt_ecb(self.text)
+    def setArn(self, arn):
+        self._ARN = ("%7s" % arn).replace(" ", ".").encode()
 
-    def sign(self, encrypt_res):
-        sm2_crypt = sm2.CryptSM2(public_key=self.keys.getPubKey(), private_key=self.keys.getPriKey())
-        sign = sm2_crypt.sign_with_sm3(encrypt_res)
-        return Util.hex2byte(sign)
+    def setUDbi(self, udbi):
+        self._UDBI = udbi.encode()
 
-    def verify(self):
-        sm2_crypt = sm2.CryptSM2(public_key=self.keys.getPubKey(), private_key=self.keys.getPriKey())
-        verify = sm2_crypt.verify_with_sm3(self.sign_res, self.encry_res)
-        return verify
+    def setAck(self, ack):
+        self._ACK = ack.encode()
 
-    def getEncryptMessage(self, mod):
-        encrypt_res = self.encrypt()
-        sign_res = self.sign(encrypt_res)
+    def setSerial(self, serial):
+        self._serial = serial.encode()
 
-        value = []
+    def setFlight(self, flight):
+        self._flight = flight.encode()
 
-        value.append(len(encrypt_res))
-        value.append(len(sign_res))
+    def setText(self, text):
+        self._text = text.encode()
 
-        value.extend(encrypt_res)
-        value.extend(sign_res)
+    def setSecurityLevel(self, lev):
+        self._sec_level = lev
 
+    def getSecurityLevel(self):
+        return self._sec_level
 
-        if mod == self.PREVIEW:
-            string = Util.deLoadCode(value)
-            return string
+    def setIQdata(self, iq):
+        self._IQdata = iq
 
-        elif mod == self.SEND:
-            string = Util.deLoadCode(value)
-            #return string
-            return Util.byteString2Ascii(self.text)
+    def getIQdata(self):
+        return self._IQdata
 
 
-    def getDescryptMessage(self):
-        encrypt_res = self.decrypt()
-        return Util.deLoadCode(encrypt_res)
+    def generateIQ(self):
+        #handle = dll_test._handle
+        dll_test = CDLL("/home/jiaxv/inoproject/Acars_Sim_C/build/libacarstrans.so")
+        mf = message_format()
+
+        mf.isUp = c_int(self._up_down)
+        mf.mode = c_char(self._mode)
+        mf.arn = (c_ubyte*len(self._ARN)).from_buffer_copy(bytearray(self._ARN))
+        mf.label = (c_ubyte*len(self._label)).from_buffer_copy(bytearray(self._label))
+        mf.ack = c_char(self._ACK)
+        mf.udbi = c_char(self._UDBI)
+        mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray(self._text))
+        mf.text_len = len(self._text)
+        if self._up_down == DOWNLINK:
+            mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial))
+            mf.flight = (c_ubyte*len(self._flight)).from_buffer_copy(bytearray(self._flight))
+            mf.text_len = len(self._text) + len(self._serial) + len(self._flight)
+            print("------", string_at(mf.serial, len(self._serial)))
+            print("------", string_at(mf.flight, len(self._flight)))
+
+        dll_test.mergeElements.argtypes = [c_void_p]
+        dll_test.modulate.argtypes = [c_void_p]
+        dll_test.mergeElements(byref(mf))
+        dll_test.modulate(byref(mf))
+
+        self._IQdata =  string_at(mf.complex_i8, mf.complex_length * 2)
+        #print(self._IQdata[0:1000])
+
+        #lsb = string_at(mf.lsb_with_crc_msg, mf.total_len)
+        #print(lsb)
+        #po = pointer(mf)
+        #dll_test.mergeElements(po)
+        #dll_test.modulate(po)
+
+        ##try:
+        ##    stdlib = CDLL("")
+        ##except OSError:
+        ##    # Alpine Linux.
+        ##    stdlib = CDLL("libc.so")
+        ##dll_close = stdlib.dlclose
+
+        ##dll_close.argtypes = (c_void_p,)
+        ##dll_close.restype = c_int
+        ##dll_close(handle)
+        #del dll_test
+
+        #kkk()
+
+        #import test
+        #self.p_conn, self.s_conn = multiprocessing.Pipe()
+        #tt = test.Test(self.s_conn)
+        #tt.start()
+        #self._IQdata = self.p_conn.recv()
+
+
+
+        #print(self._IQdata[:200])
