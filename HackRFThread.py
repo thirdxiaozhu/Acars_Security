@@ -1,11 +1,15 @@
 from multiprocessing import managers
 import time
 import multiprocessing
+import queue
 from Util import *
 
 from pyhackrf import *
 from ctypes import *
 
+"""
+尚无法使用多进程队列动态管理消息，未找出原因
+"""
 
 MODE_DSP = 1001
 MODE_CMU = 1002
@@ -47,12 +51,15 @@ class HackRfEvent(multiprocessing.Process):
         self.son_conn = son_conn
         self.mode = mode
         #self.msg_q = multiprocessing.Queue()
-        manager = multiprocessing.Manager()
-        self.msg_q = manager.Queue()
-        self.msg_q_l = manager.Lock()
+        #manager = multiprocessing.Manager()
+        #self.msg_queue_wait = manager.Queue()
+        #self.msg_queue_to_trans = manager.Queue()
+        self.msg_queue = queue.Queue()
+        #self.msg_q_l = manager.Lock()
 
         self._do_stop = False
         self._do_close = False
+
 
     def initiDevice(self):
 
@@ -92,6 +99,7 @@ class HackRfEvent(multiprocessing.Process):
             print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
             return -1
 
+
         return 0
 
     def initContext(self):
@@ -112,10 +120,6 @@ class HackRfEvent(multiprocessing.Process):
             self.initContext()
             #self.isStopThread = KThread(target=self.isStopThreadEvent)
             #self.isStopThread.start()
-
-            self.SizeThread = KThread(target=self.Sizing)
-            self.SizeThread.start()
-
             result = self._hackrf_broadcaster.startTX(self.hackrfTXCB, self._tx_context)
             if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
                 print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
@@ -135,11 +139,7 @@ class HackRfEvent(multiprocessing.Process):
     def IsDeviceCLose(self):
         return self._do_close
 
-    def getProcess(self):
-        return int((self._tx_context.have_repeated + 1)/self._tx_context.to_repeat * 100)
-
     # do hackRF lib and instance cleanup at object destruction time
-
     def closeDevice(self, res):
         result = self._hackrf_broadcaster.close()
         print("close", result)
@@ -147,8 +147,6 @@ class HackRfEvent(multiprocessing.Process):
             print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
         self._do_stop = True
-        #self.isStopThread.kill()
-        self.SizeThread.kill()
 
         result = HackRF.deinitialize()
         print("dein", result)
@@ -164,13 +162,9 @@ class HackRfEvent(multiprocessing.Process):
         print("have del")
 
     def isStopThreadEvent(self):
-        recv = self.son_conn.recv()
-        print(recv)
-        if recv == 1:
-            self.forceStop()
-
+        pass
     def getMsgQueue(self):
-        return self.msg_q
+        return self.msg_queue
 
     def hackrfTXCB(self, hackrf_transfer):
         user_tx_context = cast(hackrf_transfer.contents.tx_ctx,
@@ -178,13 +172,13 @@ class HackRfEvent(multiprocessing.Process):
 
         tx_buffer_length = hackrf_transfer.contents.valid_length
         if user_tx_context.contents.buffer_length == 0:
-            if self.msg_q.empty():
+            if self.msg_queue.empty():
                 #return 0
                 return -1
             else:
-                self.msg_q_l.acquire()
-                msg = self.msg_q.get()
-                self.msg_q_l.release()
+                #self.msg_q_l.acquire()
+                msg = self.msg_queue.get()
+                #self.msg_q_l.release()
                 msg_len = len(msg)
                 user_tx_context.contents.buffer = (c_ubyte * msg_len).from_buffer_copy(msg)
                 user_tx_context.contents.buffer_length = msg_len
@@ -207,15 +201,5 @@ class HackRfEvent(multiprocessing.Process):
 
             return 0
 
-    def Sizing(self):
-        while 1:
-            print(self.msg_q.qsize())
-            time.sleep(0.1)
-
-    def putMessage(self, iq_data, times):
-        for i in range(times):
-            self.msg_q_l.acquire()
-            self.msg_q.put(iq_data)
-            self.msg_q_l.release()
-
-            print("!!!!!!!!!!!!!!!!", self.msg_q)
+    def putMessage(self, iq_data):
+        self.msg_queue.put(iq_data)

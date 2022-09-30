@@ -19,21 +19,20 @@ class Entity:
         self._addr = None
         self._hackrf_event = None
         self._rtl_event = None
-        self._is_streaming = False
         #self.dataQueue = multiprocessing.Queue()
         #self.qtThread = Util.KThread(
         #    target=self.qtEvent, args=(self.qtQueue, self.qtSignals,))
 
 
-    def putMessage(self, msg, times):
-        if msg.getSecurityLevel() == Message.NORMAL:
-            #for i in range(times):
-            #    self.msg_queue.put_nowait(msg._IQdata)
-            self._hackrf_event.putMessage(msg._IQdata, times)
+    def putMessage(self, msgs):
+        for msg in msgs:
+                if msg.getSecurityLevel() == Message.NORMAL:
+                    self._hackrf_event.putMessage(msg._IQdata)
 
+        self.startHackRF()
 
-        if self._hackrf_event.getMsgQueue().qsize() != 0 and self._is_streaming == False:
-            self.startHackRF()
+        #if self._hackrf_event.getMsgQueue().qsize() != 0 and self._is_streaming == False:
+        #    self.startHackRF()
 
 
     def getHackRF(self):
@@ -72,12 +71,10 @@ class Entity:
         #self._rtl_event.startRecv()
 
     def hackRFWorking(self):
-        self._is_streaming = True
         self._hackrf_event.start()
 
         recv = self.parent_conn.recv()
         self._hackrf_event.terminate()
-        self._is_streaming = False
         self.HackRFWorkThread.kill()
 
     def forceStopDevices(self):

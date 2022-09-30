@@ -1,3 +1,4 @@
+import errno
 from os import times
 import socket
 from subprocess import Popen
@@ -117,6 +118,11 @@ class Receiver:
 
         try:
             self.monitorThread.kill()
+        except AttributeError:
+            pass
+
+        try:
+            del self.monitorThread
         except AttributeError:
             pass
 

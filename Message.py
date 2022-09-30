@@ -1,9 +1,6 @@
 from ctypes import *
-from ctypes import Structure
-import ctypes
 
 import multiprocessing
-from unicodedata import name
 
 
 UPLINK = 0

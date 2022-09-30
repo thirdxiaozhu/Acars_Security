@@ -1,17 +1,26 @@
+from base64 import encode
+from cgitb import text
+from lib2to3.pgen2.token import RPAR
+from re import A
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 import time
 import os
+import re
 
 
 import HackRFThread
 import Receiver
 import Entity
 import Message
+import Util
 
 ALL = 0
 RECV = 1
 TRAN = 2
+
+SUCCESS = 0
+FAIL = 1
 
 
 
@@ -64,6 +73,25 @@ class Interface(QtCore.QObject):
         self.cmu_stop_btn = self.mainWindow.findChild(QPushButton, "cmu_stop_btn")
         self.cmu_msg_list = self.mainWindow.findChild(QListWidget, "cmu_msg_list")
 
+        self.dsp_mode_edit = self.mainWindow.findChild(QLineEdit, "dsp_mode_edit")
+        self.dsp_label_edit = self.mainWindow.findChild(QLineEdit, "dsp_label_edit")
+        self.dsp_arn_edit = self.mainWindow.findChild(QLineEdit, "dsp_arn_edit")
+        self.dsp_ubi_edit = self.mainWindow.findChild(QLineEdit, "dsp_ubi_edit")
+        self.dsp_ack_edit = self.mainWindow.findChild(QLineEdit, "dsp_ack_edit")
+        self.dsp_text_edit = self.mainWindow.findChild(QTextEdit, "dsp_text_edit")
+        self.dsp_send_btn = self.mainWindow.findChild(QPushButton, "dsp_send_btn")
+
+        self.cmu_mode_edit = self.mainWindow.findChild(QLineEdit, "cmu_mode_edit")
+        self.cmu_label_edit = self.mainWindow.findChild(QLineEdit, "cmu_label_edit")
+        self.cmu_arn_edit = self.mainWindow.findChild(QLineEdit, "cmu_arn_edit")
+        self.cmu_dbi_edit = self.mainWindow.findChild(QLineEdit, "cmu_dbi_edit")
+        self.cmu_ack_edit = self.mainWindow.findChild(QLineEdit, "cmu_ack_edit")
+        self.cmu_id_edit = self.mainWindow.findChild(QLineEdit, "cmu_id_edit")
+        self.cmu_text_edit = self.mainWindow.findChild(QTextEdit, "cmu_text_edit")
+        self.cmu_send_btn = self.mainWindow.findChild(QPushButton, "cmu_send_btn")
+
+
+
     def initEvent(self):
         self.dsp_receiver_confirm.clicked.connect(lambda: self.confirmDevice(
             RECV, self.dsp_receiver_combo, self.dsp_rtl_label, self.dsp))
@@ -79,6 +107,8 @@ class Interface(QtCore.QObject):
         self.cmu_start_btn.clicked.connect(lambda: self.startWorking(Entity.MODE_CMU))
         self.cmu_stop_btn.clicked.connect(lambda:self.stopWorking(Entity.MODE_CMU))
         self.cmu_send_test_btn.clicked.connect(lambda: self.sendTest(Entity.MODE_CMU))
+        self.dsp_send_btn.clicked.connect(lambda: self.send(Entity.MODE_DSP))
+        self.cmu_send_btn.clicked.connect(lambda: self.send(Entity.MODE_CMU))
 
         self.addMessageSignal.connect(self.addMessage)
 
@@ -159,34 +189,23 @@ class Interface(QtCore.QObject):
 
         if mode == Entity.MODE_DSP:
             msg = Message.Message(Message.UPLINK)
+            #paras = self.getParas(Message.UPLINK)
             msg.setMode("2")
             msg.setLabel("23")
             msg.setArn("SP-LDE")
             msg.setUDbi("A")
             msg.setAck("A")
-            #msg.setSerial("M01A")
-            #msg.setFlight("CA1234")
             msg.setText("Hello_World_From_AirAirAirAir")
             msg.setSecurityLevel(Message.Message.NORMAL)
 
             msg.generateIQ()
-            #msg = Message.Message(Message.UPLINK)
-            #msg.setMode("2")
-            #msg.setLabel("23")
-            #msg.setArn("SP-LDE")
-            #msg.setUDbi("A")
-            #msg.setAck("A")
-            #msg.setText("Hello_World_From_Ground")
-            #msg.setSecurityLevel(Message.Message.NORMAL)
-
-            #msg.generateIQ()
-
             self.dsp.initHackRF()
-            self.dsp.putMessage(msg, 3)
+            self.dsp.putMessage(msg)
             #self.dsp.startHackRF()
 
         if mode == Entity.MODE_CMU:
             msg = Message.Message(Message.DOWNLINK)
+
             msg.setMode("2")
             msg.setLabel("23")
             msg.setArn("SP-LDE")
@@ -199,8 +218,59 @@ class Interface(QtCore.QObject):
 
             msg.generateIQ()
             self.cmu.initHackRF()
-            self.cmu.putMessage(msg, 3)
+            self.cmu.putMessage(msg)
             #self.cmu.startHackRF()
+
+    def send(self, mode):
+
+        if mode == Entity.MODE_DSP:
+            paras = self.getParas(Message.UPLINK)
+            if paras == FAIL:
+                return
+
+            text_slices = Util.cut_list(paras[5], 220)
+            msgs = []
+            for slice in text_slices:
+                msg = Message.Message(Message.UPLINK)
+                msg.setMode(paras[0])
+                msg.setLabel(paras[1])
+                msg.setArn(paras[2])
+                msg.setUDbi(paras[3])
+                msg.setAck(paras[4])
+                #msg.setText(paras[5])
+                msg.setText(slice)
+                msg.setSecurityLevel(Message.Message.NORMAL)
+
+                msg.generateIQ()
+                msgs.append(msg)
+                
+            self.dsp.initHackRF()
+            self.dsp.putMessage(msgs)
+
+        if mode == Entity.MODE_CMU:
+            paras = self.getParas(Message.DOWNLINK)
+            if paras == FAIL:
+                return
+
+            text_slices = Util.cut_list(paras[7], 210)
+            msgs = []
+            for slice in text_slices:
+                msg = Message.Message(Message.DOWNLINK)
+                msg.setMode(paras[0])
+                msg.setLabel(paras[1])
+                msg.setArn(paras[2])
+                msg.setUDbi(paras[3])
+                msg.setAck(paras[4])
+                msg.setSerial(paras[5])
+                msg.setFlight(paras[6])
+                #msg.setText(paras[7])
+                msg.setText(slice)
+                msg.setSecurityLevel(Message.Message.NORMAL)
+                msg.generateIQ()
+                msgs.append(msg)
+
+            self.cmu.initHackRF()
+            self.cmu.putMessage(msgs)
 
 
     def addMessage(self, paraDict, mode):
@@ -218,3 +288,75 @@ class Interface(QtCore.QObject):
 
         time.sleep(1)
         os._exit(0)
+
+    def getParas(self, mode):
+        arn_pattern = re.compile(r"^[A-Z0-9-.]{7}")
+        ack_pattern = re.compile(r"^[A-Za-z]")
+        ubi_pattern = re.compile(r"[A-Za-z]")
+        dbi_pattern = re.compile(r"[0-9]")
+
+
+        if mode == Message.UPLINK:
+            modeInput = self.dsp_mode_edit.text()
+            arnInput = ("%7s" % self.dsp_arn_edit.text()).replace(" ", ".")
+            labelInput = self.dsp_label_edit.text()
+            dubiInput = self.dsp_ubi_edit.text()
+            ackInput = self.dsp_ack_edit.text()
+            text = self.dsp_text_edit.toPlainText()
+        elif mode == Message.DOWNLINK:
+            modeInput = self.cmu_mode_edit.text()
+            arnInput = ("%7s" % self.cmu_arn_edit.text()).replace(" ", ".")
+            labelInput = self.cmu_label_edit.text()
+            idInput = self.cmu_id_edit.text()
+            dubiInput = self.cmu_dbi_edit.text()
+            ackInput = self.cmu_ack_edit.text()
+            text = self.cmu_text_edit.toPlainText()
+        else:
+            return FAIL
+
+        if modeInput != "2":
+            QMessageBox.critical(None, "Error", "Only mode a is supported temporarily!", QMessageBox.Yes)
+            return FAIL
+        if not arn_pattern.match(arnInput):
+            QMessageBox.critical(None, "Error", "Illegal Arn character!", QMessageBox.Yes)
+            return FAIL
+
+        if len(ackInput) != 1 or not ack_pattern.match(ackInput) :
+            if ackInput != "":
+                QMessageBox.critical(None, "Error", "Illegal Ack character!", QMessageBox.Yes)
+                return FAIL
+            else:
+                ackInput = "%c" % (0x15)
+
+        if len(labelInput) > 2:
+            QMessageBox.critical(None, "Error", "Length of label more than 2!", QMessageBox.Yes)
+            return FAIL
+
+        #Generate context based on context Identifier
+        if mode == Message.UPLINK:
+            print(dubiInput)
+            if not ubi_pattern.match(dubiInput) or len(dubiInput) > 1:
+                if ackInput != "":
+                    QMessageBox.critical(None, "Error", "Illegal UBI character!", QMessageBox.Yes)
+                    return FAIL
+                else:
+                    dubiInput = 0x15
+            formaltext = text
+
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, formaltext)
+
+        else:
+            if not dbi_pattern.match(dubiInput) or len(dubiInput) > 1:
+                QMessageBox.critical(None, "Error", "Illegal DBI character!", QMessageBox.Yes)
+                return FAIL
+
+            if len(idInput) != 6:
+                QMessageBox.critical(None, "Error", "Length of flight id not equals to 6!", QMessageBox.Yes)
+                return FAIL
+
+            msgNo = "M01A"
+            FlightID = idInput
+            formaltext = msgNo + FlightID + text
+
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, msgNo, FlightID, formaltext)
+
