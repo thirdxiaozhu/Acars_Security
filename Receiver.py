@@ -5,14 +5,12 @@ from subprocess import Popen
 from time import sleep
 
 from Util import *
-import json
-import re
 from datetime import datetime
 from rtlsdr import RtlSdr
 
 
-MODE_DSP = 1001
-MODE_CMU = 1002
+MODE_DSP = 220
+MODE_CMU = 210
 
 class Receiver:
 
@@ -44,7 +42,7 @@ class Receiver:
                 '''
 
 
-    def __init__(self, serial, freq, addr, signal, mode) -> None:
+    def __init__(self, serial, freq, addr, signal, mode, entity) -> None:
         #self.host = "127.0.0.1"
         #self.port = 5555
         self.addr = addr
@@ -54,6 +52,7 @@ class Receiver:
         self.freq = freq
         self.signal = signal
         self.mode = mode
+        self.entity = entity
 
     #def reloadRtls(self):
     #    for i in range(self.rtlCombo.count()):
@@ -70,7 +69,6 @@ class Receiver:
         self.startAcarsdec()
 
     def startAcarsdec(self):
-        #j = self.host + ":" + str(self.port)
         j = self.addr
         r = str(self.freq)
         d = self.rtl_serial
@@ -88,7 +86,7 @@ class Receiver:
         while True:
             data, xxx = self.udpServer.recvfrom(self.bufsize)
             data = data.decode()
-            self.signal.emit(data, self.mode)
+            self.entity.receiveMessage(data)
 
     #def updateDetail(self):
 #

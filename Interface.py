@@ -1,12 +1,11 @@
-from base64 import encode
-from cgitb import text
-from lib2to3.pgen2.token import RPAR
-from re import A
+from operator import mod
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 import time
 import os
 import re
+import json
+from datetime import datetime
 
 
 import HackRFThread
@@ -14,6 +13,8 @@ import Receiver
 import Entity
 import Message
 import Util
+import Ui_Cert
+from Crypto import Security
 
 ALL = 0
 RECV = 1
@@ -25,7 +26,7 @@ FAIL = 1
 
 
 class Interface(QtCore.QObject):
-    addMessageSignal = QtCore.pyqtSignal(str, int)
+    addMessageSignal = QtCore.pyqtSignal(object, int)
 
     def __init__(self, mainWindow) -> None:
         super(Interface, self).__init__()
@@ -36,6 +37,9 @@ class Interface(QtCore.QObject):
         self.initEvent()
         self.getDevices()
         self.initDevices(ALL)
+
+        self.dsp.putMsgSignal(self.addMessageSignal)
+        self.cmu.putMsgSignal(self.addMessageSignal)
 
     def initComponents(self):
         self.dsp_receiver_combo = self.mainWindow.findChild(
@@ -91,6 +95,19 @@ class Interface(QtCore.QObject):
         self.cmu_send_btn = self.mainWindow.findChild(QPushButton, "cmu_send_btn")
 
 
+        self.dsp_passwd_edit = self.mainWindow.findChild(QTextEdit, "dsp_passwd_edit")
+        self.dsp_cert_btn = self.mainWindow.findChild(QPushButton, "dsp_cert_btn")
+        self.cmu_passwd_edit = self.mainWindow.findChild(QTextEdit, "cmu_passwd_edit")
+        self.cmu_cert_btn = self.mainWindow.findChild(QPushButton, "cmu_cert_btn")
+        self.symmetrickey_edit = self.mainWindow.findChild(QLineEdit, "symmetrickey_edit")
+
+        self.security_mode_combo = self.mainWindow.findChild(QComboBox, "security_mode_combo")
+
+        self.msg_table = self.mainWindow.findChild(QTableWidget, "msg_table")
+
+        self.confirm_symkey_btn = self.mainWindow.findChild(QPushButton, "confirm_symkey_btn")
+        self.initMsgTable()
+
 
     def initEvent(self):
         self.dsp_receiver_confirm.clicked.connect(lambda: self.confirmDevice(
@@ -103,12 +120,14 @@ class Interface(QtCore.QObject):
             TRAN, self.cmu_transmitter_combo, self.cmu_hackrf_label, self.cmu))
         self.dsp_start_btn.clicked.connect(lambda: self.startWorking(Entity.MODE_DSP))
         self.dsp_stop_btn.clicked.connect(lambda:self.stopWorking(Entity.MODE_DSP))
-        self.dsp_send_test_btn.clicked.connect(lambda: self.sendTest(Entity.MODE_DSP))
         self.cmu_start_btn.clicked.connect(lambda: self.startWorking(Entity.MODE_CMU))
         self.cmu_stop_btn.clicked.connect(lambda:self.stopWorking(Entity.MODE_CMU))
-        self.cmu_send_test_btn.clicked.connect(lambda: self.sendTest(Entity.MODE_CMU))
         self.dsp_send_btn.clicked.connect(lambda: self.send(Entity.MODE_DSP))
         self.cmu_send_btn.clicked.connect(lambda: self.send(Entity.MODE_CMU))
+
+        self.dsp_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_DSP))
+        self.cmu_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_CMU))
+        self.confirm_symkey_btn.clicked.connect(lambda: self.setSymmetricKey())
 
         self.addMessageSignal.connect(self.addMessage)
 
@@ -185,42 +204,6 @@ class Interface(QtCore.QObject):
         elif mode == Entity.MODE_CMU:
             self.cmu.forceStopDevices()
 
-    def sendTest(self, mode):
-
-        if mode == Entity.MODE_DSP:
-            msg = Message.Message(Message.UPLINK)
-            #paras = self.getParas(Message.UPLINK)
-            msg.setMode("2")
-            msg.setLabel("23")
-            msg.setArn("SP-LDE")
-            msg.setUDbi("A")
-            msg.setAck("A")
-            msg.setText("Hello_World_From_AirAirAirAir")
-            msg.setSecurityLevel(Message.Message.NORMAL)
-
-            msg.generateIQ()
-            self.dsp.initHackRF()
-            self.dsp.putMessage(msg)
-            #self.dsp.startHackRF()
-
-        if mode == Entity.MODE_CMU:
-            msg = Message.Message(Message.DOWNLINK)
-
-            msg.setMode("2")
-            msg.setLabel("23")
-            msg.setArn("SP-LDE")
-            msg.setUDbi("9")
-            msg.setAck("A")
-            msg.setSerial("M01A")
-            msg.setFlight("CA1234")
-            msg.setText("Hello_World")
-            msg.setSecurityLevel(Message.Message.NORMAL)
-
-            msg.generateIQ()
-            self.cmu.initHackRF()
-            self.cmu.putMessage(msg)
-            #self.cmu.startHackRF()
-
     def send(self, mode):
 
         if mode == Entity.MODE_DSP:
@@ -228,63 +211,29 @@ class Interface(QtCore.QObject):
             if paras == FAIL:
                 return
 
-            text_slices = Util.cut_list(paras[5], 220)
-            msgs = []
-            for slice in text_slices:
-                msg = Message.Message(Message.UPLINK)
-                msg.setMode(paras[0])
-                msg.setLabel(paras[1])
-                msg.setArn(paras[2])
-                msg.setUDbi(paras[3])
-                msg.setAck(paras[4])
-                #msg.setText(paras[5])
-                msg.setText(slice)
-                msg.setSecurityLevel(Message.Message.NORMAL)
-
-                msg.generateIQ()
-                msgs.append(msg)
-                
-            self.dsp.initHackRF()
-            self.dsp.putMessage(msgs)
+            self.dsp.putMessageParas(mode, paras)
 
         if mode == Entity.MODE_CMU:
             paras = self.getParas(Message.DOWNLINK)
             if paras == FAIL:
                 return
 
-            text_slices = Util.cut_list(paras[7], 210)
-            msgs = []
-            for slice in text_slices:
-                msg = Message.Message(Message.DOWNLINK)
-                msg.setMode(paras[0])
-                msg.setLabel(paras[1])
-                msg.setArn(paras[2])
-                msg.setUDbi(paras[3])
-                msg.setAck(paras[4])
-                msg.setSerial(paras[5])
-                msg.setFlight(paras[6])
-                #msg.setText(paras[7])
-                msg.setText(slice)
-                msg.setSecurityLevel(Message.Message.NORMAL)
-                msg.generateIQ()
-                msgs.append(msg)
-
-            self.cmu.initHackRF()
-            self.cmu.putMessage(msgs)
+            self.cmu.putMessageParas(mode, paras)
 
 
-    def addMessage(self, paraDict, mode):
+    def addMessage(self, msg, mode):
+        self.addMsgTableRow(msg.getMsgTuple())
+
         if mode == Entity.MODE_DSP:
-            self.dsp_msg_list.addItem(paraDict)
+            self.dsp_msg_list.addItem(msg.String())
         elif mode == Entity.MODE_CMU:
-            self.cmu_msg_list.addItem(paraDict)
+            self.cmu_msg_list.addItem(msg.String())
         else:
             pass
 
     def closeWindow(self):
         self.dsp.forceStopDevices()
         self.cmu.forceStopDevices()
-        #self.receiver.stopRecv()
 
         time.sleep(1)
         os._exit(0)
@@ -294,7 +243,6 @@ class Interface(QtCore.QObject):
         ack_pattern = re.compile(r"^[A-Za-z]")
         ubi_pattern = re.compile(r"[A-Za-z]")
         dbi_pattern = re.compile(r"[0-9]")
-
 
         if mode == Message.UPLINK:
             modeInput = self.dsp_mode_edit.text()
@@ -343,7 +291,7 @@ class Interface(QtCore.QObject):
                     dubiInput = 0x15
             formaltext = text
 
-            return (modeInput, labelInput, arnInput, dubiInput, ackInput, formaltext)
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, None, None ,formaltext)
 
         else:
             if not dbi_pattern.match(dubiInput) or len(dubiInput) > 1:
@@ -359,4 +307,81 @@ class Interface(QtCore.QObject):
             formaltext = msgNo + FlightID + text
 
             return (modeInput, labelInput, arnInput, dubiInput, ackInput, msgNo, FlightID, formaltext)
+
+    def getCert(self, mode):
+        dialog = QDialog()
+        window = Ui_Cert.Ui_Form()
+        window.setupUi(dialog)
+        if mode == Entity.MODE_DSP:
+            CertInterface(dialog, self.dsp)
+        elif mode == Entity.MODE_CMU:
+            CertInterface(dialog, self.cmu)
+        dialog.show()
+        dialog.exec_()
+
+    def getSecurityMode(self):
+        index = self.security_mode_combo.currentIndex()
+        if index == 0:
+            return Message.Message.NORMAL
+        elif index == 1:
+            return Message.Message.CUSTOM
+
+    def initMsgTable(self):
+        self.msg_table.setColumnCount(11)
+        self.msg_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Serial Number", "FlightID", "Text"])
+
+    def addMsgTableRow(self, paras):
+        rows_c = self.msg_table.rowCount()
+        rows_c += 1
+        self.msg_table.setRowCount(rows_c)
+        #print(self.msg_table.columnCount())
+
+        for i in range(self.msg_table.columnCount()):
+            print(paras[i])
+            newItem = QTableWidgetItem(paras[i])
+            self.msg_table.setItem(rows_c - 1,i,newItem)
+
+    def setSymmetricKey(self):
+        key = self.symmetrickey_edit.text()
+        iv = Security.getIV()
+        self.dsp.setSymmetricKeyandIV(key, iv)
+        self.cmu.setSymmetricKeyandIV(key, iv)
+
+        self.dsp.setSecurityLevel(self.getSecurityMode())
+        self.cmu.setSecurityLevel(self.getSecurityMode())
+        print(key)
+
+
+class CertInterface:
+    def __init__(self, dialog, entity) -> None:
+        self.dialog = dialog
+        self.entity = entity
+        self.initComponent()
+        self.initEvent()
+
+    def initComponent(self):
+        self.country_edit = self.dialog.findChild(QLineEdit, "country_edit")
+        self.locality_edit = self.dialog.findChild(QLineEdit, "locality_edit")
+        self.province_edit = self.dialog.findChild(QLineEdit, "province_edit")
+        self.org_edit = self.dialog.findChild(QLineEdit, "org_edit")
+        self.orgunit_edit = self.dialog.findChild(QLineEdit, "orgunit_edit")
+        self.comname_edit = self.dialog.findChild(QLineEdit, "comname_edit")
+        self.confirm_btn = self.dialog.findChild(QPushButton, "confirm_btn")
+
+    def initEvent(self):
+        self.confirm_btn.clicked.connect(lambda:self.setCert())
+
+    def getParas(self):
+        country = self.country_edit.text()
+        locality = self.locality_edit.text()
+        province = self.province_edit.text()
+        organization = self.org_edit.text()
+        org_unit = self.orgunit_edit.text()
+        common_name = self.comname_edit.text()
+        return (country, locality, province, organization, org_unit, common_name)
+
+    def setCert(self):
+        self.entity.setCert(self.getParas())
+        self.dialog.close()
 

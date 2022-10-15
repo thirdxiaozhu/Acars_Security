@@ -39,6 +39,44 @@ TABEL_FOR_6BIT = [
     ["/", "?", "O", "_"],
 ]
 
+PAYLOAD_TABEL = [
+    [" ", "0", "@", "P"],
+    ["!", "1", "A", "Q"],
+    ["\"", "2", "B", "R"],
+    ["#", "3", "C", "S"],
+    ["$", "4", "D", "T"],
+    ["%", "5", "E", "U"],
+    ["&", "6", "F", "V"],
+    ["'", "7", "G", "W"],
+    ["(", "8", "H", "X"],
+    [")", "9", "I", "Y"],
+    ["*", ":", "J", "Z"],
+    ["+", ";", "K", "["],
+    [",", "<", "L", b'\x5c'.decode()],
+    ["-", "=", "M", "]"],
+    [".", ">", "N", "^"],
+    ["/", "?", "O", "|"],
+]
+
+MESSAGE_TABEL = [
+    [" ", "0", "@", "P"],
+    ["!", "1", "A", "Q"],
+    ["\"", "2", "B", "R"],
+    ["#", "3", "C", "S"],
+    ["$", "4", "D", "T"],
+    ["%", "5", "E", "U"],
+    ["&", "6", "F", "V"],
+    ["'", "7", "G", "W"],
+    ["(", "8", "H", "X"],
+    [")", "9", "I", "Y"],
+    ["*", ":", "J", "Z"],
+    ["+", ";", "K", "["],
+    [",", "<", "L", "\\"],
+    ["-", "=", "M", "]"],
+    [".", ">", "N", "^"],
+    ["/", "?", "O", "|"],
+]
+
 TABLE_FOR_CRC16_CCITT = [
         0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf, 0x8c48, 0x9dc1, 0xaf5a,
         0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7, 0x1081, 0x0108, 0x3393, 0x221a, 0x56a5, 0x472c, 0x75b7, 0x643e,
@@ -101,6 +139,9 @@ def indexto8bit(row, col):
 
 def indexTo6bit(row, col):
     return TABEL_FOR_6BIT[row][col]
+
+def intTo6bit(index):
+    return index - 32
 
 
 def hex2byte(source):
@@ -288,3 +329,7 @@ def cut_list(lists, cut_len):
         res_data.append(lists)
 
     return res_data
+
+def getMessageTableElement(row, col):
+    #print(row, col, MESSAGE_TABEL[row][col])
+    return ord(MESSAGE_TABEL[row][col])

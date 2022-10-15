@@ -11,8 +11,8 @@ from ctypes import *
 尚无法使用多进程队列动态管理消息，未找出原因
 """
 
-MODE_DSP = 1001
-MODE_CMU = 1002
+MODE_DSP = 220
+MODE_CMU = 210
 
 class hackrf_tx_context(Structure):
     _fields_ = [("buffer", POINTER(c_ubyte)),

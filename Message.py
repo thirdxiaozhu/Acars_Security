@@ -36,19 +36,24 @@ class message_format(Structure):
 
 class Message:
     NORMAL = 0
+    CUSTOM = 1
 
-    def __init__(self, up_down) -> None:
-        self._up_down = up_down
-        self._mode = None
-        self._label = None 
-        self._ARN = None
-        self._UDBI = None
-        self._ACK = None
-        self._serial = None
-        self._flight = None
-        self._text = None
+    def __init__(self, message_tuple) -> None:
+        self._timestamp = message_tuple[0]
+        self._up_down = message_tuple[1]
+        self._sec_level = message_tuple[2]
+        self._mode = message_tuple[3]
+        self._label = message_tuple[4]
+        self._ARN = ("%7s" % message_tuple[5]).replace(" ", ".")
+        self._UDBI = message_tuple[6]
+        self._ACK = message_tuple[7]
+        self._serial = message_tuple[8]
+        self._flight = message_tuple[9]
+        self._text = message_tuple[10]
         self._IQdata = None
-        self._sec_level = None
+
+    def setTimeStamp(self, timestamp):
+        self._timestamp = timestamp
 
     def setMode(self, mode):
         self._mode = mode.encode()
@@ -80,6 +85,12 @@ class Message:
     def getSecurityLevel(self):
         return self._sec_level
 
+    def getMsgTuple(self):
+        return (self._timestamp, self._up_down, self._sec_level, self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._serial, self._flight, self._text)
+
+    def String(self):
+        return self._text
+
     def setIQdata(self, iq):
         self._IQdata = iq
 
@@ -93,16 +104,16 @@ class Message:
         mf = message_format()
 
         mf.isUp = c_int(self._up_down)
-        mf.mode = c_char(self._mode)
-        mf.arn = (c_ubyte*len(self._ARN)).from_buffer_copy(bytearray(self._ARN))
-        mf.label = (c_ubyte*len(self._label)).from_buffer_copy(bytearray(self._label))
-        mf.ack = c_char(self._ACK)
-        mf.udbi = c_char(self._UDBI)
-        mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray(self._text))
+        mf.mode = c_char(self._mode.encode())
+        mf.arn = (c_ubyte*len(self._ARN)).from_buffer_copy(bytearray(self._ARN.encode()))
+        mf.label = (c_ubyte*len(self._label)).from_buffer_copy(bytearray(self._label.encode()))
+        mf.ack = c_char(self._ACK.encode())
+        mf.udbi = c_char(self._UDBI.encode())
+        mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray(self._text.encode()))
         mf.text_len = len(self._text)
         if self._up_down == DOWNLINK:
-            mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial))
-            mf.flight = (c_ubyte*len(self._flight)).from_buffer_copy(bytearray(self._flight))
+            mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial.encode()))
+            mf.flight = (c_ubyte*len(self._flight)).from_buffer_copy(bytearray(self._flight.encode()))
             mf.text_len = len(self._text) + len(self._serial) + len(self._flight)
             print("------", string_at(mf.serial, len(self._serial)))
             print("------", string_at(mf.flight, len(self._flight)))
