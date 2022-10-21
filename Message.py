@@ -7,9 +7,9 @@ UPLINK = 0
 DOWNLINK = 1
 
 def kkk():
-    import test
+    import Process
     p_conn, s_conn = multiprocessing.Pipe()
-    tt = test.Test(s_conn)
+    tt = Process.Test(s_conn)
     tt.start()
     _IQdata = p_conn.recv()
 
@@ -115,8 +115,6 @@ class Message:
             mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial.encode()))
             mf.flight = (c_ubyte*len(self._flight)).from_buffer_copy(bytearray(self._flight.encode()))
             mf.text_len = len(self._text) + len(self._serial) + len(self._flight)
-            print("------", string_at(mf.serial, len(self._serial)))
-            print("------", string_at(mf.flight, len(self._flight)))
 
         dll_test.mergeElements.argtypes = [c_void_p]
         dll_test.modulate.argtypes = [c_void_p]
@@ -124,34 +122,3 @@ class Message:
         dll_test.modulate(byref(mf))
 
         self._IQdata =  string_at(mf.complex_i8, mf.complex_length * 2)
-        #print(self._IQdata[0:1000])
-
-        #lsb = string_at(mf.lsb_with_crc_msg, mf.total_len)
-        #print(lsb)
-        #po = pointer(mf)
-        #dll_test.mergeElements(po)
-        #dll_test.modulate(po)
-
-        ##try:
-        ##    stdlib = CDLL("")
-        ##except OSError:
-        ##    # Alpine Linux.
-        ##    stdlib = CDLL("libc.so")
-        ##dll_close = stdlib.dlclose
-
-        ##dll_close.argtypes = (c_void_p,)
-        ##dll_close.restype = c_int
-        ##dll_close(handle)
-        #del dll_test
-
-        #kkk()
-
-        #import test
-        #self.p_conn, self.s_conn = multiprocessing.Pipe()
-        #tt = test.Test(self.s_conn)
-        #tt.start()
-        #self._IQdata = self.p_conn.recv()
-
-
-
-        #print(self._IQdata[:200])

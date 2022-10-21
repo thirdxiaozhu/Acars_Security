@@ -88,7 +88,7 @@ class HackRfEvent(multiprocessing.Process):
             return -1
 
         # week gain (used for wire feed + attenuators)
-        result = self._hackrf_broadcaster.setTXVGAGain(20)
+        result = self._hackrf_broadcaster.setTXVGAGain(25)
         if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
             print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
             return -1

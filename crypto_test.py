@@ -3,7 +3,7 @@ from ctypes import *
 import deflate
 from Crypto import Security
 
-import test
+import Process
 
 dll_test = CDLL("/home/jiaxv/CLionProjects/acars_crypt/build/libacarscrypt.so")
 
@@ -50,7 +50,7 @@ def aaa():
     key = "03"
     plain = "O8PIQA36P829P2VXPCVED8PUOPLY7MI32KVNPJ9CF792QWER8AAA381Z5Y68XFD3"
     print(len(plain))
-    plain = test.encodeMsg(plain)
+    plain = Process.encodeMsg(plain)
     print(len(plain))
 
     iv_buffer = cast(create_string_buffer(IV_LEN), POINTER(c_ubyte))
@@ -76,7 +76,7 @@ def aaa():
     #print(string_at(ce.plain, ce.plain_len))
     plain2 = string_at(ce2.plain_2, ce2.plain_len)
 
-    print(test.decodeMsg(plain2))
+    print(Process.decodeMsg(plain2))
 
 def bbb():
     key = "03"

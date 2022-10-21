@@ -43,8 +43,6 @@ class Receiver:
 
 
     def __init__(self, serial, freq, addr, signal, mode, entity) -> None:
-        #self.host = "127.0.0.1"
-        #self.port = 5555
         self.addr = addr
         self.bufsize = 8192
         self.addr_4_udp = (self.addr.split(":")[0], int(self.addr.split(":")[1]))
@@ -54,11 +52,6 @@ class Receiver:
         self.mode = mode
         self.entity = entity
 
-    #def reloadRtls(self):
-    #    for i in range(self.rtlCombo.count()):
-    #        self.rtlCombo.removeItem(0)
-
-    #    self.getRtls()
 
 
     def startRecv(self):
@@ -88,25 +81,6 @@ class Receiver:
             data = data.decode()
             self.entity.receiveMessage(data)
 
-    #def updateDetail(self):
-#
-    #    self.detailEdit.clear()
-    #    dict = json.loads(self.messageList.selectedItems()[0].text())
-    #    timestamp = dict.get("timestamp") 
-    #    timestamp = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
-#
-    #    block_id = dict.get("block_id")
-    #    pattern = re.compile(r"[A-Za-z]")
-    #    mode = pattern.match(block_id)
-    #    if mode is None:
-    #        self.detailEdit.append(
-    #            self.downlinkhtml % (timestamp, dict.get("freq"), dict.get("mode"), dict.get("label"), dict.get("tail"), dict.get("ack"), dict.get("block_id"),dict.get("flight"), dict.get("msgno"), dict.get("text")))
-    #    else:
-    #        self.detailEdit.append(
-    #            self.uplinkhtml % (timestamp, dict.get("freq"), dict.get("mode"), dict.get("label"), dict.get("tail"), dict.get("ack"), dict.get("block_id"),dict.get("text")))
-#
-
-            
 
     def stopRecv(self):
         try:
@@ -138,15 +112,6 @@ class Receiver:
             del self.udpServer
         except AttributeError:
             pass
-
-    #def refreshList(self):
-    #    self.detailEdit.clear()
-    #    if self.messageList.count()>0:
-    #        for i in range(self.messageList.count()-1,-1,-1):
-    #               self.messageList.removeItemWidget(self.messageList.takeItem(i))
-
-    #def addMessage(self, paraDict):
-    #    self.messageList.addItem(paraDict)
 
 
 def getRtls():

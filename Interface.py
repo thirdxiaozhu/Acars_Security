@@ -1,11 +1,11 @@
-from operator import mod
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 import time
 import os
 import re
-import json
 from datetime import datetime
+import OpenSSL
+from dateutil import parser
 
 
 import HackRFThread
@@ -14,6 +14,7 @@ import Entity
 import Message
 import Util
 import Ui_Cert
+import Ui_Cert_Detail
 from Crypto import Security
 
 ALL = 0
@@ -95,9 +96,9 @@ class Interface(QtCore.QObject):
         self.cmu_send_btn = self.mainWindow.findChild(QPushButton, "cmu_send_btn")
 
 
-        self.dsp_passwd_edit = self.mainWindow.findChild(QTextEdit, "dsp_passwd_edit")
+        self.dsp_passwd_edit = self.mainWindow.findChild(QLineEdit, "dsp_passwd_edit")
         self.dsp_cert_btn = self.mainWindow.findChild(QPushButton, "dsp_cert_btn")
-        self.cmu_passwd_edit = self.mainWindow.findChild(QTextEdit, "cmu_passwd_edit")
+        self.cmu_passwd_edit = self.mainWindow.findChild(QLineEdit, "cmu_passwd_edit")
         self.cmu_cert_btn = self.mainWindow.findChild(QPushButton, "cmu_cert_btn")
         self.symmetrickey_edit = self.mainWindow.findChild(QLineEdit, "symmetrickey_edit")
 
@@ -106,7 +107,10 @@ class Interface(QtCore.QObject):
         self.msg_table = self.mainWindow.findChild(QTableWidget, "msg_table")
 
         self.confirm_symkey_btn = self.mainWindow.findChild(QPushButton, "confirm_symkey_btn")
+        self.dsp_certs_list = self.mainWindow.findChild(QListWidget, "dsp_certs_list")
+        self.cmu_certs_list = self.mainWindow.findChild(QListWidget, "cmu_certs_list")
         self.initMsgTable()
+        self.initCertList()
 
 
     def initEvent(self):
@@ -130,6 +134,8 @@ class Interface(QtCore.QObject):
         self.confirm_symkey_btn.clicked.connect(lambda: self.setSymmetricKey())
 
         self.addMessageSignal.connect(self.addMessage)
+        self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
+        self.cmu_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.cmu_certs_list))
 
     def getDevices(self):
         self.hackrfs = HackRFThread.getInfo()
@@ -282,7 +288,6 @@ class Interface(QtCore.QObject):
 
         #Generate context based on context Identifier
         if mode == Message.UPLINK:
-            print(dubiInput)
             if not ubi_pattern.match(dubiInput) or len(dubiInput) > 1:
                 if ackInput != "":
                     QMessageBox.critical(None, "Error", "Illegal UBI character!", QMessageBox.Yes)
@@ -313,8 +318,10 @@ class Interface(QtCore.QObject):
         window = Ui_Cert.Ui_Form()
         window.setupUi(dialog)
         if mode == Entity.MODE_DSP:
+            self.dsp.setSelfKey(self.dsp_passwd_edit.text())
             CertInterface(dialog, self.dsp)
         elif mode == Entity.MODE_CMU:
+            self.cmu.setSelfKey(self.dsp_passwd_edit.text())
             CertInterface(dialog, self.cmu)
         dialog.show()
         dialog.exec_()
@@ -331,6 +338,29 @@ class Interface(QtCore.QObject):
         self.msg_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Serial Number", "FlightID", "Text"])
 
+    def initCertList(self):
+        dsp_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/dsp"
+        cmu_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/dsp"
+        self.scanCerts(dsp_cert_path, self.dsp_certs_list)
+        self.scanCerts(cmu_cert_path, self.cmu_certs_list)
+
+    def showCertDetail(self, component):
+        item = component.selectedItems()[0]
+        dialog = QDialog()
+        window = Ui_Cert_Detail.Ui_Form()
+        window.setupUi(dialog)
+        CertDetail(dialog, item.text())
+        dialog.show()
+        dialog.exec_()
+        #print(item.text())
+
+    def scanCerts(self, path, component):
+        for item in os.scandir(path):
+            if item.is_file() and item.path[-8:-4]=="cert":
+                component.addItem(item.path)
+                #files.append(item.path)
+
+
     def addMsgTableRow(self, paras):
         rows_c = self.msg_table.rowCount()
         rows_c += 1
@@ -338,7 +368,6 @@ class Interface(QtCore.QObject):
         #print(self.msg_table.columnCount())
 
         for i in range(self.msg_table.columnCount()):
-            print(paras[i])
             newItem = QTableWidgetItem(paras[i])
             self.msg_table.setItem(rows_c - 1,i,newItem)
 
@@ -350,7 +379,6 @@ class Interface(QtCore.QObject):
 
         self.dsp.setSecurityLevel(self.getSecurityMode())
         self.cmu.setSecurityLevel(self.getSecurityMode())
-        print(key)
 
 
 class CertInterface:
@@ -384,4 +412,66 @@ class CertInterface:
     def setCert(self):
         self.entity.setCert(self.getParas())
         self.dialog.close()
+
+
+class CertDetail:
+    def __init__(self, dialog, path) -> None:
+        self.dialog = dialog
+        self.path = path
+        self.initComponent()
+        self.initRaw()
+        self.initDetail()
+
+    def initComponent(self):
+        self.cert_raw = self.dialog.findChild(QTextEdit, "cert_raw")
+        self.cert_detail = self.dialog.findChild(QTextEdit, "cert_detail")
+
+    def initRaw(self):
+        raw = '<div>%s</div>'
+        f = open("users/dsp/dspcert.pem", "r")
+        lines = []
+        for line in f.readlines():                          #依次读取每行  
+            lines.append(line.strip())                             #去掉每行头尾空白  
+            self.cert_raw.append(raw % line.strip())
+        f.close()
+
+    def initDetail(self):
+        cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open("users/dsp/dspcert.pem").read())
+        certIssue = cert.get_issuer()
+        detail = """
+        <div>
+            <div>   <font color="red">Version:          </font> %s </div>
+            <div>   <font color="red">Serial Number:    </font> %s </div>
+            <div>   <font color="red">Algorith:         </font> %s </div>
+            <div>   <font color="red">Common Name:      </font> %s </div>
+            <div>   <font color="red">Not Before:       </font> %s </div>
+            <div>   <font color="red">Not After:        </font> %s </div>
+            <div>   <font color="red">Has Expired:      </font> %s </div>
+            <div>   <font color="red">Public Key Length:</font> %s </div>
+            <div>   <font color="red">Public Key:<br>   </font>      %s </div>
+            <div>
+                ----------------------------
+            </div>
+        </div>
+        """
+
+        component = '<div><font color = "red">%s: </font> %s</div>'
+
+        not_before = parser.parse(cert.get_notBefore().decode("UTF-8"))
+        not_after = parser.parse(cert.get_notAfter().decode("UTF-8"))
+
+        self.cert_detail.append(detail % (
+            cert.get_version() + 1,
+            hex(cert.get_serial_number()),
+            cert.get_signature_algorithm().decode("UTF-8"),
+            certIssue.commonName,
+            not_before.strftime('%Y-%m-%d %H:%M:%S'),
+            not_after.strftime('%Y-%m-%d %H:%M:%S'),
+            cert.has_expired(),
+            cert.get_pubkey().bits(),
+            OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, cert.get_pubkey()).decode("utf-8"),
+        ))
+
+        for item in certIssue.get_components():
+            self.cert_detail.append(component % (item[0].decode("utf-8"), item[1].decode("utf-8")))
 

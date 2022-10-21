@@ -7,8 +7,12 @@ import Util
 def payloadEncode(text):
     bins = []
     for i in text:
-        bin = Util.intToBin(Util.intTo6bit(ord(i)))
-        bin = bin[2:]
+        ch_int = ord(i)
+        if ch_int == 124:
+            bin = "111111"
+        else:
+            bin = Util.intToBin(ord(i)-32)
+            bin = bin[2:]
         bins.append(bin)
 
     bins_str = "".join(bins)
@@ -21,6 +25,7 @@ def payloadEncode(text):
     charas = []
     for i in Util.cut_list(bins_str, 8):
         charas.append(chr(int(i, 2)))
+
     return "".join(charas).encode("latin1")
 
 def payloadDecode(todecode):
@@ -32,12 +37,15 @@ def payloadDecode(todecode):
 
     bin_list = Util.cut_list(bins_str, 6)
 
-    if len(bin_list[-1]) < 6 or bin_list[-1] == "000000":
+    while len(bin_list[-1]) < 6 or bin_list[-1] == "000000":
         bin_list = bin_list[:-1]
 
     ret = []
     for i in bin_list:
-        ret.append(chr(int(i, 2) + 32))
+        if i == "111111":
+            ret.append(chr(124))
+        else:
+            ret.append(chr(int(i, 2) + 32))
 
     return "".join(ret)
 
@@ -125,9 +133,15 @@ if __name__ == "__main__":
     #encode_test()
     #_8bits = "\x03"
     #_8bits = "\x7c"
-    #_8bits = "\xff\xaf\xd2FHE\x8a.K\x17(Y\xb7\x17A}Ef\xc3\xcdjk\\\xd7\xbd\x9b\x03\xe2\xe7\x7f\x1ej\x00\x00\x00\x00\x00\x00\x00"
-    _8bits = "\x7c\x7c\x7c\x7c"
-    aa = messageEncode(_8bits.encode("latin1"))
-    print(aa)
-    tt = messageDecode(aa)
-    print(tt)
+    _8bits = b'\xbe\xeb\x90F\xcb\xd0JKO(\xa4\x99I\x05\x11\x96\xcb8\x97\r\xe1I\x05\x11A\x04\x80\x19\xa4\xfe\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    #_8bits = "||||||||"
+    #ss = payloadEncode(_8bits)
+    #print(ss)
+    mm = payloadDecode(_8bits)
+    print(mm)
+    #aa = messageEncode(_8bits)
+    #print(aa)
+    #tt = messageDecode(_8bits)
+    #print(tt)
+    #mm = payloadDecode(tt)
+    #print(mm)
