@@ -1,8 +1,5 @@
-import errno
-from os import times
 import socket
 from subprocess import Popen
-from time import sleep
 
 from Util import *
 from datetime import datetime
@@ -67,10 +64,10 @@ class Receiver:
         d = self.rtl_serial
         if self.mode == MODE_DSP:
             self.acarsdec = Popen(
-                ["./acarsdec","-D", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+                ["bin/acarsdec","-D", "-v", "-j", j, "-p", "-8", "-r", d, r], shell=False)
         elif self.mode == MODE_CMU:
             self.acarsdec = Popen(
-                ["./acarsdec","-U", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+                ["bin/acarsdec","-U", "-v", "-j", j, "-p", "-8", "-r", d, r], shell=False)
         else:
             return
 

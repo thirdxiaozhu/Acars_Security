@@ -45,13 +45,14 @@ class Ce(Structure):
         self.key_len = len(key)
         if cipher_text is None:
             self.plain_len = len(plain_text)
-            self.cipher_len = self.plain_len + 15
+            self.cipher_len = self.plain_len + 16
+            
             self.cast()
             self.plain = (c_ubyte*len(plain_text)).from_buffer_copy(bytearray(plain_text))
             self.cipher = (c_ubyte*self.cipher_len).from_buffer_copy(bytearray([0 for i in range(self.cipher_len)]))
         elif plain_text is None:
             self.cipher_len = len(cipher_text)
-            self.plain_len = self.cipher_len 
+            self.plain_len = self.cipher_len -16
             self.cast()
             self.cipher = (c_ubyte*len(cipher_text)).from_buffer_copy(bytearray(cipher_text))
             self.plain = (c_ubyte*self.plain_len).from_buffer_copy(bytearray([0 for i in range(self.plain_len)]))
@@ -102,21 +103,26 @@ class Security:
         dll_test.test_x509_cert.argtypes = [c_void_p]
         dll_test.test_x509_cert(byref(se))
 
-    def getPubKey(path):
-        #filepath = cast(create_string_buffer(len(filepath)), POINTER(c_char))
-        filepath_encoded = path.encode()
+    def getSign(path, cipher):
+        filepath_encoded = path.encode("latin1")
         filepath = (c_char*len(filepath_encoded)).from_buffer_copy(bytearray(filepath_encoded))
+
+        cipher_encoded = cipher.encode("latin1")
+        cipher_text = (c_ubyte*len(cipher_encoded)).from_buffer_copy(bytearray(cipher_encoded))
+        cipherlen = c_size_t(len(cipher_encoded))
+
         sign_space = cast(create_string_buffer(SIGN_LEN), POINTER(c_ubyte))  
         signlen = c_size_t(0)
-        dll_test.getSign.argtypes = [c_char_p, c_void_p]
-        dll_test.getSign(filepath, sign_space, byref(signlen))
 
-        sign_text = string_at(sign_space, signlen.value)
-        return sign_text
+        #dll_test.getSign.argtypes = [c_char_p, c_void_p, c_size_t, c_char_p, c_size_t]
+        dll_test.getSign(filepath, sign_space, byref(signlen), cipher_text, byref(cipherlen))
+        
+        return string_at(sign_space, signlen.value)
 
     def symmetricEncrypt(key, iv, plain_str):
-
         plain = Process.payloadEncode(plain_str)
+        print("Payload Encode", len(plain))
+
         ce = Ce(key, iv, plain, None)
 
         dll_test.sm4_encrypt_CBC.argtypes = [c_void_p]
@@ -126,8 +132,6 @@ class Security:
         iv = string_at(ce.iv, IV_LEN)
 
         cipher_str = cipher.decode("latin1")
-
-        #return Process.messageEncode(cipher_str.encode("latin1"))
         return cipher_str
     
     def symmetricDecrypt(key, iv, cipher_str):

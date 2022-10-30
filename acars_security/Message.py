@@ -16,11 +16,11 @@ def kkk():
 
 class message_format(Structure):
     _fields_ = [("isUp", c_int),
-                ("mode", c_char),
+                ("mode", c_ubyte),
                 ("arn", POINTER(c_ubyte)),
-                ("ack", c_char),
+                ("ack", c_ubyte),
                 ("label", POINTER(c_ubyte)),
-                ("udbi", c_char),
+                ("udbi", c_ubyte),
                 ("serial", POINTER(c_ubyte)),
                 ("flight", POINTER(c_ubyte)),
                 ("text", POINTER(c_ubyte)),
@@ -104,11 +104,11 @@ class Message:
         mf = message_format()
 
         mf.isUp = c_int(self._up_down)
-        mf.mode = c_char(self._mode.encode())
+        mf.mode = c_ubyte(ord(self._mode.encode("latin1")))
         mf.arn = (c_ubyte*len(self._ARN)).from_buffer_copy(bytearray(self._ARN.encode()))
         mf.label = (c_ubyte*len(self._label)).from_buffer_copy(bytearray(self._label.encode()))
-        mf.ack = c_char(self._ACK.encode())
-        mf.udbi = c_char(self._UDBI.encode())
+        mf.ack = c_ubyte(ord(self._ACK.encode("latin1")))
+        mf.udbi = c_ubyte(ord(self._UDBI.encode("latin1")))
         mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray(self._text.encode()))
         mf.text_len = len(self._text)
         if self._up_down == DOWNLINK:

@@ -2,14 +2,14 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 
-import Ui_MainInterface
 import Interface
+import Ui.Ui_MainInterface
 
 def main():
     #print(QStyleFactory.keys())
     app = QApplication(sys.argv)
     mainWindow = QMainWindow()
-    ui = Ui_MainInterface.Ui_MainWindow()
+    ui = Ui.Ui_MainInterface.Ui_MainWindow()
     ui.setupUi(mainWindow)
     interface = Interface.Interface(mainWindow)
     QApplication.setStyle("Oxygen")

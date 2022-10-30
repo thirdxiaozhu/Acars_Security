@@ -6,7 +6,7 @@ from datetime import datetime
 
 from Receiver import Receiver
 import Util
-import Crypto
+import Crypto_Util as Crypto
 import Message
 import Process
 
@@ -162,7 +162,8 @@ class Entity:
                 curr_len = 2+cipher_len
                 cipher_text = to_text[2:curr_len]
                 sign_text = to_text[curr_len:curr_len+sign_len]
-                processed_text = self.symmetricDecrypt(cipher_text).split("<E>")[0]
+                #print("????????????????????????", sign_text)
+                processed_text = self.symmetricDecrypt(cipher_text)
             except:
                 processed_text = text
         else:
@@ -180,9 +181,11 @@ class Entity:
         if self._sec_level == Message.Message.NORMAL:
             processed_text = text
         elif self._sec_level == Message.Message.CUSTOM:
-            cipher_text = self.symmetricEncrypt(text + "<E>")
-            sign_text = self.getPubKey().decode("latin1")
-            processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
+            cipher_text = self.symmetricEncrypt(text)
+            sign_text = self.getSign(cipher_text).decode("latin1")
+            #processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
+            processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text
+            #print("\n\n\n", len(processed_text), "!!!!!!!!!!!!!!", sign_text)
             processed_text = Process.messageEncode(processed_text.encode("latin1"))
 
         text_slices = Util.cut_list(processed_text, mode)
@@ -192,7 +195,7 @@ class Entity:
 
         self.startHackRF()
 
-    def getPubKey(self):
+    def getSign(self, cipher):
         pass
 
 
@@ -218,9 +221,10 @@ class DSP(Entity):
         ret = super().receiveMessage(msg)
         self._msg_signal.emit(ret, MODE_DSP)
 
-    def getPubKey(self):
-        super().getPubKey()
-        return Crypto.Security.getPubKey("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem" + "\x00")
+    def getSign(self, cipher):
+        print(cipher)
+        super().getSign(cipher)
+        return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem" + "\x00", cipher)
 
 class CMU(Entity):
     def __init__(self) -> None:
@@ -243,6 +247,6 @@ class CMU(Entity):
         self._msg_signal.emit(ret, MODE_CMU)
 
 
-    def getPubKey(self):
-        super().getPubKey()
-        return Crypto.Security.getPubKey("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00")
+    def getSign(self, cipher):
+        super().getSign(cipher)
+        return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher)

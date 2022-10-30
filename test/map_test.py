@@ -18,16 +18,17 @@ class MainWindow(QtWidgets.QWidget):
         label.setSizePolicy(sp)
         vbox.addWidget(label)
         view = self.view = QtWebEngineWidgets.QWebEngineView()
-        channel = self.channel = QtWebChannel.QWebChannel()
+        #channel = self.channel = QtWebChannel.QWebChannel()
 
-        channel.registerObject("MainWindow", self)
-        view.page().setWebChannel(channel)
+        #channel.registerObject("MainWindow", self)
+        #view.page().setWebChannel(channel)
 
         file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "src/main/assets/map.html",
+            "../src/main/assets/map.html",
         )
-        self.view.setUrl(QtCore.QUrl.fromLocalFile(file))
+        #self.view.setUrl(QtCore.QUrl.fromLocalFile(file))
+        view.load(QtCore.QUrl.fromUserInput("https://www.baidu.com"))
 
         vbox.addWidget(view)
 

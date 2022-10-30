@@ -3,7 +3,6 @@ from PyQt5 import QtCore
 import time
 import os
 import re
-from datetime import datetime
 import OpenSSL
 from dateutil import parser
 
@@ -12,10 +11,9 @@ import HackRFThread
 import Receiver
 import Entity
 import Message
-import Util
-import Ui_Cert
-import Ui_Cert_Detail
-from Crypto import Security
+import Ui.Ui_Cert
+import Ui.Ui_Cert_Detail
+from Crypto_Util import Security
 
 ALL = 0
 RECV = 1
@@ -115,13 +113,13 @@ class Interface(QtCore.QObject):
 
     def initEvent(self):
         self.dsp_receiver_confirm.clicked.connect(lambda: self.confirmDevice(
-            RECV, self.dsp_receiver_combo, self.dsp_rtl_label, self.dsp))
+            RECV, self.dsp_receiver_combo, self.dsp_rtl_label, self.dsp, self.dsp_receiver_confirm))
         self.dsp_transmitter_confirm.clicked.connect(lambda: self.confirmDevice(
-            TRAN, self.dsp_transmitter_combo, self.dsp_hackrf_label, self.dsp))
+            TRAN, self.dsp_transmitter_combo, self.dsp_hackrf_label, self.dsp, self.dsp_transmitter_confirm))
         self.cmu_receiver_confirm.clicked.connect(lambda: self.confirmDevice(
-            RECV, self.cmu_receiver_combo, self.cmu_rtl_label, self.cmu))
+            RECV, self.cmu_receiver_combo, self.cmu_rtl_label, self.cmu, self.cmu_receiver_confirm))
         self.cmu_transmitter_confirm.clicked.connect(lambda: self.confirmDevice(
-            TRAN, self.cmu_transmitter_combo, self.cmu_hackrf_label, self.cmu))
+            TRAN, self.cmu_transmitter_combo, self.cmu_hackrf_label, self.cmu, self.cmu_transmitter_confirm))
         self.dsp_start_btn.clicked.connect(lambda: self.startWorking(Entity.MODE_DSP))
         self.dsp_stop_btn.clicked.connect(lambda:self.stopWorking(Entity.MODE_DSP))
         self.cmu_start_btn.clicked.connect(lambda: self.startWorking(Entity.MODE_CMU))
@@ -174,7 +172,7 @@ class Interface(QtCore.QObject):
         for i in self.rtls:
             combo.addItem(i)
 
-    def confirmDevice(self, sign, combo, label, entity):
+    def confirmDevice(self, sign, combo, label, entity, button):
         serial = combo.currentText()
         if sign == RECV:
             entity.setRtl(serial, self.addMessageSignal)
@@ -187,6 +185,7 @@ class Interface(QtCore.QObject):
         else:
             return
 
+        button.setEnabled(False)
         combo.setEnabled(False)
         label.setText(serial)
 
@@ -315,7 +314,7 @@ class Interface(QtCore.QObject):
 
     def getCert(self, mode):
         dialog = QDialog()
-        window = Ui_Cert.Ui_Form()
+        window = Ui.Ui_Cert.Ui_Form()
         window.setupUi(dialog)
         if mode == Entity.MODE_DSP:
             self.dsp.setSelfKey(self.dsp_passwd_edit.text())
@@ -335,19 +334,26 @@ class Interface(QtCore.QObject):
 
     def initMsgTable(self):
         self.msg_table.setColumnCount(11)
+        self.msg_table.setAlternatingRowColors(True)
+        self.msg_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.msg_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.msg_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Serial Number", "FlightID", "Text"])
+        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Number", "FlightID", "Text"])
+        self.msg_table.doubleClicked.connect(self.double_click_table_view_item)
+
+    def double_click_table_view_item(self,qModelIndex):
+        print(qModelIndex.row())
 
     def initCertList(self):
         dsp_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/dsp"
-        cmu_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/dsp"
+        cmu_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/cmu"
         self.scanCerts(dsp_cert_path, self.dsp_certs_list)
         self.scanCerts(cmu_cert_path, self.cmu_certs_list)
 
     def showCertDetail(self, component):
         item = component.selectedItems()[0]
         dialog = QDialog()
-        window = Ui_Cert_Detail.Ui_Form()
+        window = Ui.Ui_Cert_Detail.Ui_Form()
         window.setupUi(dialog)
         CertDetail(dialog, item.text())
         dialog.show()
@@ -428,7 +434,7 @@ class CertDetail:
 
     def initRaw(self):
         raw = '<div>%s</div>'
-        f = open("users/dsp/dspcert.pem", "r")
+        f = open(self.path, "r")
         lines = []
         for line in f.readlines():                          #依次读取每行  
             lines.append(line.strip())                             #去掉每行头尾空白  
@@ -436,7 +442,7 @@ class CertDetail:
         f.close()
 
     def initDetail(self):
-        cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open("users/dsp/dspcert.pem").read())
+        cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open(self.path).read())
         certIssue = cert.get_issuer()
         detail = """
         <div>
