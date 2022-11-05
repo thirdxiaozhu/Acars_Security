@@ -104,7 +104,7 @@
              </sizepolicy>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="SafetySettings">
              <property name="geometry">
@@ -214,8 +214,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>150</height>
+               <width>325</width>
+               <height>629</height>
               </rect>
              </property>
              <attribute name="label">
@@ -247,8 +247,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>183</width>
-                   <height>264</height>
+                   <width>305</width>
+                   <height>547</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -414,6 +414,13 @@
                    </layout>
                   </item>
                   <item>
+                   <widget class="QPushButton" name="dsp_test_stable_btn">
+                    <property name="text">
+                     <string>Test Stability</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QPushButton" name="dsp_start_btn">
                     <property name="text">
                      <string>Start</string>
@@ -507,8 +514,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>148</height>
+               <width>325</width>
+               <height>629</height>
               </rect>
              </property>
              <attribute name="label">
@@ -525,8 +532,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>185</width>
-                   <height>274</height>
+                   <width>307</width>
+                   <height>549</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -705,6 +712,13 @@
                      </spacer>
                     </item>
                    </layout>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="cmu_test_stable_btn">
+                    <property name="text">
+                     <string>Test Stability</string>
+                    </property>
+                   </widget>
                   </item>
                   <item>
                    <widget class="QPushButton" name="cmu_start_btn">

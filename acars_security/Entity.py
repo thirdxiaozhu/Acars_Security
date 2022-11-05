@@ -15,6 +15,8 @@ MODE_CMU = 210
 
 
 class Entity:
+    WAIT_START = 1000
+    WORKING = 1001
 
     def __init__(self):
         self._hackrf_serial = None
@@ -27,10 +29,12 @@ class Entity:
         self._sym_key = None
         self._iv = None
         self._msg_signal = None
+        self._test_signal = None
         self._sec_level = 0
         self.entity_num = None
         self._cert_key = None
         self.work_space = "users/"
+        self.statu = self.WAIT_START
 
 
     def generateMsgs(self, mode, paras, slices):
@@ -53,6 +57,7 @@ class Entity:
 
 
     def getHackRF(self):
+        print(self._hackrf_serial)
         return self._hackrf_serial
 
     def setHackRF(self, serial):
@@ -87,6 +92,8 @@ class Entity:
     def putMsgSignal(self, signal):
         self._msg_signal = signal
 
+    def putTestingSignal(self, signal):
+        self._test_signal = signal
 
     def startHackRF(self):
         self.HackRFWorkThread = Util.KThread(target=self.hackRFWorking)
@@ -172,28 +179,33 @@ class Entity:
 
         return msg
 
-    def putMessageParas(self, mode, paras):
+    def putMessageParas(self, mode, paras_list):
         self.initHackRF()
-        text = paras[7]
 
-        processed_text = ""
-        if self._sec_level == Message.Message.NORMAL:
-            processed_text = text
-        elif self._sec_level == Message.Message.CUSTOM:
-            cipher_text = self.symmetricEncrypt(text)
-            sign_text = self.getSign(cipher_text).decode("latin1")
-            processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text
-            processed_text = Process.messageEncode(processed_text.encode("latin1"))
+        for paras in paras_list:
+            text = paras[7]
 
-        text_slices = Util.cut_list(processed_text, mode)
-        msgs = self.generateMsgs(mode, paras, text_slices)
-        for msg in msgs:
-            self._hackrf_event.putMessage(msg._IQdata)
+            processed_text = ""
+            if self._sec_level == Message.Message.NORMAL:
+                processed_text = text
+            elif self._sec_level == Message.Message.CUSTOM:
+                cipher_text = self.symmetricEncrypt(text)
+                sign_text = self.getSign(cipher_text).decode("latin1")
+                processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text
+                processed_text = Process.messageEncode(processed_text.encode("latin1"))
+
+            text_slices = Util.cut_list(processed_text, mode)
+            msgs = self.generateMsgs(mode, paras, text_slices)
+            for msg in msgs:
+                self._hackrf_event.putMessage(msg._IQdata)
 
         self.startHackRF()
 
     def getSign(self, cipher):
         pass
+
+    def changeStatu(self):
+        self.statu = self.WORKING
 
 
 class DSP(Entity):
@@ -216,7 +228,10 @@ class DSP(Entity):
 
     def receiveMessage(self, msg):
         ret = super().receiveMessage(msg)
-        self._msg_signal.emit(ret, MODE_DSP)
+        if self.statu == self.WAIT_START:
+            self._test_signal.emit(ret, MODE_DSP)
+        else:
+            self._msg_signal.emit(ret, MODE_DSP)
 
     def getSign(self, cipher):
         print(cipher)
@@ -241,7 +256,10 @@ class CMU(Entity):
 
     def receiveMessage(self, msg):
         ret = super().receiveMessage(msg)
-        self._msg_signal.emit(ret, MODE_CMU)
+        if self.statu == self.WAIT_START:
+            self._test_signal.emit(ret, MODE_DSP)
+        else:
+            self._msg_signal.emit(ret, MODE_CMU)
 
 
     def getSign(self, cipher):

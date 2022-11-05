@@ -11,9 +11,13 @@ import HackRFThread
 import Receiver
 import Entity
 import Message
+from Crypto_Util import Security
+
 import Ui.Ui_Cert
 import Ui.Ui_Cert_Detail
-from Crypto_Util import Security
+import Ui.Ui_Stable
+
+import Digalogs
 
 ALL = 0
 RECV = 1
@@ -83,6 +87,7 @@ class Interface(QtCore.QObject):
         self.dsp_ack_edit = self.mainWindow.findChild(QLineEdit, "dsp_ack_edit")
         self.dsp_text_edit = self.mainWindow.findChild(QTextEdit, "dsp_text_edit")
         self.dsp_send_btn = self.mainWindow.findChild(QPushButton, "dsp_send_btn")
+        self.dsp_test_stable_btn = self.mainWindow.findChild(QPushButton, "dsp_test_stable_btn")
 
         self.cmu_mode_edit = self.mainWindow.findChild(QLineEdit, "cmu_mode_edit")
         self.cmu_label_edit = self.mainWindow.findChild(QLineEdit, "cmu_label_edit")
@@ -92,6 +97,7 @@ class Interface(QtCore.QObject):
         self.cmu_id_edit = self.mainWindow.findChild(QLineEdit, "cmu_id_edit")
         self.cmu_text_edit = self.mainWindow.findChild(QTextEdit, "cmu_text_edit")
         self.cmu_send_btn = self.mainWindow.findChild(QPushButton, "cmu_send_btn")
+        self.cmu_test_stable_btn = self.mainWindow.findChild(QPushButton, "cmu_test_stable_btn")
 
 
         self.dsp_passwd_edit = self.mainWindow.findChild(QLineEdit, "dsp_passwd_edit")
@@ -130,6 +136,9 @@ class Interface(QtCore.QObject):
         self.dsp_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_DSP))
         self.cmu_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_CMU))
         self.confirm_symkey_btn.clicked.connect(lambda: self.setSymmetricKey())
+
+        self.dsp_test_stable_btn.clicked.connect(lambda: self.testStable(Entity.MODE_DSP))
+        self.cmu_test_stable_btn.clicked.connect(lambda: self.testStable(Entity.MODE_CMU))
 
         self.addMessageSignal.connect(self.addMessage)
         self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
@@ -191,12 +200,14 @@ class Interface(QtCore.QObject):
 
     def startWorking(self, mode):
         if mode == Entity.MODE_DSP:
+            self.dsp.changeStatu()
             self.dsp.setFrequency(self.dsp_frequency_edit.text())
             self.dsp.setHostAndPort(self.dsp_addr_edit.text())
             self.dsp.startRtl()
             #self.dsp.startHackRF()
 
         elif mode == Entity.MODE_CMU:
+            self.cmu.changeStatu()
             self.cmu.setFrequency(self.cmu_frequency_edit.text())
             self.cmu.setHostAndPort(self.cmu_addr_edit.text())
             self.cmu.startRtl()
@@ -216,14 +227,14 @@ class Interface(QtCore.QObject):
             if paras == FAIL:
                 return
 
-            self.dsp.putMessageParas(mode, paras)
+            self.dsp.putMessageParas(mode, [paras])
 
         if mode == Entity.MODE_CMU:
             paras = self.getParas(Message.DOWNLINK)
             if paras == FAIL:
                 return
 
-            self.cmu.putMessageParas(mode, paras)
+            self.cmu.putMessageParas(mode, [paras])
 
 
     def addMessage(self, msg, mode):
@@ -386,6 +397,61 @@ class Interface(QtCore.QObject):
 
         self.dsp.setSecurityLevel(self.getSecurityMode())
         self.cmu.setSecurityLevel(self.getSecurityMode())
+
+    def testStable(self, mode):
+        dialog = Digalogs.TestTransDialog()
+        window = Ui.Ui_Stable.Ui_Form()
+        window.setupUi(dialog)
+        if mode == Entity.MODE_DSP:
+            TestStable(dialog, self.dsp)
+        else:
+            TestStable(dialog, self.cmu)
+        dialog.show()
+        dialog.exec_()
+
+class TestStable(QtCore.QObject):
+    addMessageSignal = QtCore.pyqtSignal(object, int)
+    def __init__(self, dialog, entity) -> None:
+        super(TestStable, self).__init__()
+        self.dialog = dialog
+        self.entity = entity
+        self.dialog.entity = entity
+        self.repeat_combo = self.dialog.findChild(QComboBox, "repeat_times_combo")
+        self.log_edit = self.dialog.findChild(QTextEdit, "log_edit")
+        self.start_btn = self.dialog.findChild(QPushButton, "start_btn")
+        self.stop_btn = self.dialog.findChild(QPushButton, "stop_btn")
+        self.entity.putTestingSignal(self.addMessageSignal)
+        self.recv_times = 0
+        self.initEvent()
+
+    def initEvent(self):
+        self.start_btn.clicked.connect(lambda: self.startTesting())
+        self.addMessageSignal.connect(self.receiveMsg)
+
+    def receiveMsg(self, ret, mode):
+        self.recv_times += 1
+        self.printLog("Receive", self.recv_times)
+    
+
+    def startTesting(self):
+        self.entity.setFrequency("131.45")
+        self.entity.setHostAndPort("127.0.0.1:6666")
+        self.entity.startRtl()
+        test_data = ("2", "QQ", "CA1234", "A", "\x15", None, None, "Testing...")
+        para_list = []
+        for i in range(3):
+            para_list.append(test_data)
+        self.entity.putMessageParas(Entity.MODE_DSP, para_list)
+        self.printLog("Transmit", 3)
+
+
+    def printLog(self, patt, time):
+        text = """
+        <div>
+            <div> %s %d time(s) </div>
+        </div>
+        """
+        self.log_edit.append(text % (patt, time))
 
 
 class CertInterface:

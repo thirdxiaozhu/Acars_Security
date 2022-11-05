@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'MainInterface.ui'
+# Form implementation generated from reading ui file 'src/ui/MainInterface.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -96,7 +96,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_8.addLayout(self.verticalLayout_7)
         self.toolbox.addItem(self.SafetySettings, "")
         self.DSP = QtWidgets.QWidget()
-        self.DSP.setGeometry(QtCore.QRect(0, 0, 98, 150))
+        self.DSP.setGeometry(QtCore.QRect(0, 0, 325, 629))
         self.DSP.setObjectName("DSP")
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.DSP)
         self.horizontalLayout_4.setContentsMargins(10, 10, 10, 10)
@@ -105,7 +105,7 @@ class Ui_MainWindow(object):
         self.toolBox = QtWidgets.QToolBox(self.DSP)
         self.toolBox.setObjectName("toolBox")
         self.DspDevices = QtWidgets.QWidget()
-        self.DspDevices.setGeometry(QtCore.QRect(0, 0, 183, 264))
+        self.DspDevices.setGeometry(QtCore.QRect(0, 0, 305, 547))
         self.DspDevices.setObjectName("DspDevices")
         self.verticalLayout_13 = QtWidgets.QVBoxLayout(self.DspDevices)
         self.verticalLayout_13.setObjectName("verticalLayout_13")
@@ -198,6 +198,9 @@ class Ui_MainWindow(object):
         self.dsp_devices_layout.setStretch(5, 1)
         self.dsp_devices_layout.setStretch(6, 10)
         self.verticalLayout_13.addLayout(self.dsp_devices_layout)
+        self.dsp_test_stable_btn = QtWidgets.QPushButton(self.DspDevices)
+        self.dsp_test_stable_btn.setObjectName("dsp_test_stable_btn")
+        self.verticalLayout_13.addWidget(self.dsp_test_stable_btn)
         self.dsp_start_btn = QtWidgets.QPushButton(self.DspDevices)
         self.dsp_start_btn.setObjectName("dsp_start_btn")
         self.verticalLayout_13.addWidget(self.dsp_start_btn)
@@ -235,14 +238,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.addWidget(self.toolBox)
         self.toolbox.addItem(self.DSP, "")
         self.CMU = QtWidgets.QWidget()
-        self.CMU.setGeometry(QtCore.QRect(0, 0, 98, 148))
+        self.CMU.setGeometry(QtCore.QRect(0, 0, 325, 629))
         self.CMU.setObjectName("CMU")
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout(self.CMU)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.toolBox_2 = QtWidgets.QToolBox(self.CMU)
         self.toolBox_2.setObjectName("toolBox_2")
         self.CMUDevices = QtWidgets.QWidget()
-        self.CMUDevices.setGeometry(QtCore.QRect(0, 0, 185, 274))
+        self.CMUDevices.setGeometry(QtCore.QRect(0, 0, 307, 549))
         self.CMUDevices.setObjectName("CMUDevices")
         self.verticalLayout_16 = QtWidgets.QVBoxLayout(self.CMUDevices)
         self.verticalLayout_16.setContentsMargins(10, 10, 10, 10)
@@ -337,6 +340,9 @@ class Ui_MainWindow(object):
         self.cmu_devices_layout.setStretch(5, 1)
         self.cmu_devices_layout.setStretch(6, 10)
         self.verticalLayout_16.addLayout(self.cmu_devices_layout)
+        self.cmu_test_stable_btn = QtWidgets.QPushButton(self.CMUDevices)
+        self.cmu_test_stable_btn.setObjectName("cmu_test_stable_btn")
+        self.verticalLayout_16.addWidget(self.cmu_test_stable_btn)
         self.cmu_start_btn = QtWidgets.QPushButton(self.CMUDevices)
         self.cmu_start_btn.setObjectName("cmu_start_btn")
         self.verticalLayout_16.addWidget(self.cmu_start_btn)
@@ -756,7 +762,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuDevices.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.toolbox.setCurrentIndex(0)
+        self.toolbox.setCurrentIndex(1)
         self.toolBox.setCurrentIndex(0)
         self.toolBox_2.setCurrentIndex(0)
         self.tabWidget.setCurrentIndex(2)
@@ -792,6 +798,7 @@ class Ui_MainWindow(object):
         self.dsp_rtl_label.setText(_translate("MainWindow", "None"))
         self.label_12.setText(_translate("MainWindow", "Transmitter (HackRF) :"))
         self.dsp_hackrf_label.setText(_translate("MainWindow", "None"))
+        self.dsp_test_stable_btn.setText(_translate("MainWindow", "Test Stability"))
         self.dsp_start_btn.setText(_translate("MainWindow", "Start"))
         self.dsp_stop_btn.setText(_translate("MainWindow", "Stop"))
         self.toolBox.setItemText(self.toolBox.indexOf(self.DspDevices), _translate("MainWindow", "DSP Devices"))
@@ -813,6 +820,7 @@ class Ui_MainWindow(object):
         self.cmu_rtl_label.setText(_translate("MainWindow", "None"))
         self.label_9.setText(_translate("MainWindow", "Transmitter (HackRF) :"))
         self.cmu_hackrf_label.setText(_translate("MainWindow", "None"))
+        self.cmu_test_stable_btn.setText(_translate("MainWindow", "Test Stability"))
         self.cmu_start_btn.setText(_translate("MainWindow", "Start"))
         self.cmu_stop_btn.setText(_translate("MainWindow", "Stop"))
         self.toolBox_2.setItemText(self.toolBox_2.indexOf(self.CMUDevices), _translate("MainWindow", "CMU Devices"))

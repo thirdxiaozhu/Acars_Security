@@ -57,6 +57,7 @@ class Receiver:
 
     def startRecv(self):
         self.udpServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.udpServer.bind(self.addr_4_udp)
         self.monitorThread = KThread(target=self.startMonitor)
         self.monitorThread.start()
@@ -97,7 +98,6 @@ class Receiver:
     def stopRecv(self):
 
         try:
-            #self.udpServer.shutdown(2)
             self.acarsProcess.terminate()
             self.acarsProcess.kill()
             pass
@@ -120,6 +120,7 @@ class Receiver:
 
 
         try:
+            #self.udpServer.shutdown()
             self.udpServer.close()
         except AttributeError:
             pass
@@ -144,11 +145,11 @@ class RecvProcess(multiprocessing.Process):
         ppm = "-8"
         self.v = c_int(1)
         self.mode= c_int(MODE_DSP if mode == MODE_DSP else MODE_CMU)
+        print("self.mode", self.mode)
         self.ppm_i = (c_ubyte*len(ppm)).from_buffer_copy(bytearray(ppm.encode()))
         self.Rawaddr = (c_ubyte*len(addr)).from_buffer_copy(bytearray(addr.encode()))
         self.index_ = (c_ubyte*len(index)).from_buffer_copy(bytearray(index.encode()))
         self.freq_ = (c_ubyte*len(freq)).from_buffer_copy(bytearray(freq.encode()))
 
     def run(self):
-        print(self.dll_test)
         self.dll_test.startRecv(self.v, self.mode, self.Rawaddr, self.ppm_i, self.index_, self.freq_)
