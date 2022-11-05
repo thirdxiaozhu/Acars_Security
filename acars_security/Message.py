@@ -1,6 +1,7 @@
 from ctypes import *
 
 import multiprocessing
+from select import select
 
 
 UPLINK = 0
@@ -39,6 +40,7 @@ class Message:
     CUSTOM = 1
 
     def __init__(self, message_tuple) -> None:
+        print(message_tuple)
         self._timestamp = message_tuple[0]
         self._up_down = message_tuple[1]
         self._sec_level = message_tuple[2]
@@ -109,12 +111,11 @@ class Message:
         mf.label = (c_ubyte*len(self._label)).from_buffer_copy(bytearray(self._label.encode()))
         mf.ack = c_ubyte(ord(self._ACK.encode("latin1")))
         mf.udbi = c_ubyte(ord(self._UDBI.encode("latin1")))
-        mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray(self._text.encode()))
-        mf.text_len = len(self._text)
+        mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray((self._text + "\n").encode()))
+        mf.text_len = c_int(len(self._text))
         if self._up_down == DOWNLINK:
             mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial.encode()))
             mf.flight = (c_ubyte*len(self._flight)).from_buffer_copy(bytearray(self._flight.encode()))
-            mf.text_len = len(self._text) + len(self._serial) + len(self._flight)
 
         dll_test.mergeElements.argtypes = [c_void_p]
         dll_test.modulate.argtypes = [c_void_p]

@@ -1,8 +1,11 @@
+from audioop import add
 import socket
 from subprocess import Popen
+from ctypes import *
 
 from Util import *
 from datetime import datetime
+import multiprocessing
 from rtlsdr import RtlSdr
 
 
@@ -48,6 +51,7 @@ class Receiver:
         self.signal = signal
         self.mode = mode
         self.entity = entity
+        self.ppm = "-8"
 
 
 
@@ -56,20 +60,31 @@ class Receiver:
         self.udpServer.bind(self.addr_4_udp)
         self.monitorThread = KThread(target=self.startMonitor)
         self.monitorThread.start()
-        self.startAcarsdec()
+        self.acarsdecThread = KThread(target=self.startAcarsdec)
+        self.acarsdecThread.start()
 
     def startAcarsdec(self):
-        j = self.addr
-        r = str(self.freq)
-        d = self.rtl_serial
-        if self.mode == MODE_DSP:
-            self.acarsdec = Popen(
-                ["bin/acarsdec","-D", "-v", "-j", j, "-p", "-8", "-r", d, r], shell=False)
-        elif self.mode == MODE_CMU:
-            self.acarsdec = Popen(
-                ["bin/acarsdec","-U", "-v", "-j", j, "-p", "-8", "-r", d, r], shell=False)
-        else:
-            return
+        #addr = self.addr
+        #freq_str = str(self.freq)
+        #serial = self.rtl_serial
+        self.acarsProcess = RecvProcess(self.mode, self.addr,  self.rtl_serial, str(self.freq))
+        self.acarsProcess.start()
+
+        #v = c_int(1)
+        #mode= c_int(MODE_DSP if self.mode == MODE_DSP else MODE_CMU)
+        #ppm_i = (c_ubyte*len(self.ppm)).from_buffer_copy(bytearray(self.ppm.encode()))
+        #Rawaddr = (c_ubyte*len(addr)).from_buffer_copy(bytearray(addr.encode()))
+        #index_ = (c_ubyte*len(d)).from_buffer_copy(bytearray(d.encode()))
+        #freq_ = (c_ubyte*len(freq_str)).from_buffer_copy(bytearray(freq_str.encode()))
+        #dll_test.startRecv(v, mode, Rawaddr, ppm_i, index_, freq_)
+        #if self.mode == MODE_DSP:
+        #    self.acarsdec = Popen(
+        #        ["bin/acarsdec","-D", "-v", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+        #elif self.mode == MODE_CMU:
+        #    self.acarsdec = Popen(
+        #        ["bin/acarsdec","-U", "-v", "-j", j, "-p", "-8", "-r", d, r], shell=False)
+        #else:
+        #    return
 
     def startMonitor(self):
         print("Start monitoring")
@@ -80,8 +95,16 @@ class Receiver:
 
 
     def stopRecv(self):
+
         try:
-            self.acarsdec.kill()
+            #self.udpServer.shutdown(2)
+            self.acarsProcess.terminate()
+            self.acarsProcess.kill()
+            pass
+        except AttributeError:
+            pass
+        try:
+            self.acarsdecThread.kill()
         except AttributeError:
             pass
 
@@ -95,10 +118,6 @@ class Receiver:
         except AttributeError:
             pass
 
-        try:
-            self.udpServer.shutdown(2)
-        except AttributeError:
-            pass
 
         try:
             self.udpServer.close()
@@ -117,3 +136,19 @@ def getRtls():
     for i in range(len(serials)):
         devices.append(str(i))
     return devices
+
+class RecvProcess(multiprocessing.Process):
+    def __init__(self, mode, addr, index, freq):
+        super().__init__()
+        self.dll_test = CDLL("/home/jiaxv/inoproject/Acars_Security/bin/libacarsrec.so")
+        ppm = "-8"
+        self.v = c_int(1)
+        self.mode= c_int(MODE_DSP if mode == MODE_DSP else MODE_CMU)
+        self.ppm_i = (c_ubyte*len(ppm)).from_buffer_copy(bytearray(ppm.encode()))
+        self.Rawaddr = (c_ubyte*len(addr)).from_buffer_copy(bytearray(addr.encode()))
+        self.index_ = (c_ubyte*len(index)).from_buffer_copy(bytearray(index.encode()))
+        self.freq_ = (c_ubyte*len(freq)).from_buffer_copy(bytearray(freq.encode()))
+
+    def run(self):
+        print(self.dll_test)
+        self.dll_test.startRecv(self.v, self.mode, self.Rawaddr, self.ppm_i, self.index_, self.freq_)

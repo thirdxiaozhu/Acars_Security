@@ -308,7 +308,8 @@ class Interface(QtCore.QObject):
 
             msgNo = "M01A"
             FlightID = idInput
-            formaltext = msgNo + FlightID + text
+            #formaltext = msgNo + FlightID + text
+            formaltext = text
 
             return (modeInput, labelInput, arnInput, dubiInput, ackInput, msgNo, FlightID, formaltext)
 

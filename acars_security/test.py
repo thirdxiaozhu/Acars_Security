@@ -1,41 +1,27 @@
-from ctypes import *
-import multiprocessing
-from time import sleep
-import Util
-dll_test = CDLL("/home/jiaxv/inoproject/Acars_Security/bin/libacarsrec.so")
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtWebEngineWidgets import *
+
+import os
+import sys
 
 
+class Window(QMainWindow):
+    def __init__(self, parent=None):
+        super(Window, self).__init__(parent)
+        self.qwebengine = QWebEngineView()
+        url = os.getcwd() + os.path.sep + "src/main/assets/map.html"    # 要绝对路径，不然无法加载
+        print(url)
+        self.qwebengine.load(QUrl.fromLocalFile(url))
+        #self.qwebengine.load(QUrl('https://www.baidu.com'))
+        self.setCentralWidget(self.qwebengine)
 
-class RecvEvent(multiprocessing.Process):
-    def __init__(self):
-        super().__init__()
-
-    def run(self):
-        addr = "127.0.0.1:5555"
-        ppm = "-8"
-        index = "0"
-        freq = "131.45"
-        v = c_int(1)
-        mode= c_int(210)
-        ppm_i = (c_ubyte*len(ppm)).from_buffer_copy(bytearray(ppm.encode()))
-        Rawaddr = (c_ubyte*len(addr)).from_buffer_copy(bytearray(addr.encode()))
-        index_ = (c_ubyte*len(index)).from_buffer_copy(bytearray(index.encode()))
-        freq_ = (c_ubyte*len(freq)).from_buffer_copy(bytearray(freq.encode()))
-        dll_test.startRecv(v, mode, Rawaddr, ppm_i, index_, freq_)
-
-re = RecvEvent()
-
-def startWorking():
-    re.start()
-
-
-if __name__ == "__main__":
-    WorkThread = Util.KThread(target=startWorking)
-    WorkThread.start()
-    print("!!!!!!!!!")
-
-    sleep(5)
-    re.terminate()
-    WorkThread.kill()
-    
-    
+# 创建应用
+app = QApplication(sys.argv + ["--no-sandbox"])
+# 创建主窗口
+window = Window()
+# 显示窗口
+window.show()
+# 运行应用，并监听事件
+app.exec_()

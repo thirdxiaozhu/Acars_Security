@@ -7,7 +7,7 @@ import Ui.Ui_MainInterface
 
 def main():
     #print(QStyleFactory.keys())
-    app = QApplication(sys.argv)
+    app = QApplication(sys.argv+ ["--no-sandbox"])
     mainWindow = QMainWindow()
     ui = Ui.Ui_MainInterface.Ui_MainWindow()
     ui.setupUi(mainWindow)

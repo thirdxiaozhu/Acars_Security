@@ -162,7 +162,6 @@ class Entity:
                 curr_len = 2+cipher_len
                 cipher_text = to_text[2:curr_len]
                 sign_text = to_text[curr_len:curr_len+sign_len]
-                #print("????????????????????????", sign_text)
                 processed_text = self.symmetricDecrypt(cipher_text)
             except:
                 processed_text = text
@@ -183,9 +182,7 @@ class Entity:
         elif self._sec_level == Message.Message.CUSTOM:
             cipher_text = self.symmetricEncrypt(text)
             sign_text = self.getSign(cipher_text).decode("latin1")
-            #processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
             processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text
-            #print("\n\n\n", len(processed_text), "!!!!!!!!!!!!!!", sign_text)
             processed_text = Process.messageEncode(processed_text.encode("latin1"))
 
         text_slices = Util.cut_list(processed_text, mode)
