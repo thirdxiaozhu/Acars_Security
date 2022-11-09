@@ -16,7 +16,8 @@ def kkk():
 
 
 class message_format(Structure):
-    _fields_ = [("isUp", c_int),
+    _fields_ = [
+                ("isUp", c_int),
                 ("mode", c_ubyte),
                 ("arn", POINTER(c_ubyte)),
                 ("ack", c_ubyte),
@@ -25,6 +26,7 @@ class message_format(Structure):
                 ("serial", POINTER(c_ubyte)),
                 ("flight", POINTER(c_ubyte)),
                 ("text", POINTER(c_ubyte)),
+                ("crc", POINTER(c_ubyte)),
                 ("text_len", c_int),
                 ("lsb_with_crc_msg", POINTER(c_ubyte)),
                 ("total_len", c_int),
@@ -40,7 +42,7 @@ class Message:
     CUSTOM = 1
 
     def __init__(self, message_tuple) -> None:
-        print(message_tuple)
+        #print(message_tuple)
         self._timestamp = message_tuple[0]
         self._up_down = message_tuple[1]
         self._sec_level = message_tuple[2]
@@ -52,6 +54,8 @@ class Message:
         self._serial = message_tuple[8]
         self._flight = message_tuple[9]
         self._text = message_tuple[10]
+        #self._crc = message_tuple[11]
+        self._crc = "\x33\x44"
         self._IQdata = None
 
     def setTimeStamp(self, timestamp):
@@ -112,6 +116,7 @@ class Message:
         mf.ack = c_ubyte(ord(self._ACK.encode("latin1")))
         mf.udbi = c_ubyte(ord(self._UDBI.encode("latin1")))
         mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray((self._text + "\n").encode()))
+        mf.crc = (c_ubyte* 2 ).from_buffer_copy(bytearray((self._crc).encode()))
         mf.text_len = c_int(len(self._text))
         if self._up_down == DOWNLINK:
             mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial.encode()))

@@ -1,10 +1,7 @@
-from audioop import add
 import socket
-from subprocess import Popen
 from ctypes import *
 
 from Util import *
-from datetime import datetime
 import multiprocessing
 from rtlsdr import RtlSdr
 
@@ -92,6 +89,7 @@ class Receiver:
         while True:
             data, xxx = self.udpServer.recvfrom(self.bufsize)
             data = data.decode()
+            print(data)
             self.entity.receiveMessage(data)
 
 
