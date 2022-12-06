@@ -55,7 +55,6 @@ def messageEncode(text):
         bin = Util.intToBin(i)
         bins.append(bin)
 
-
     bins_str = "".join(bins)
     processed_len = 0
 
@@ -64,8 +63,8 @@ def messageEncode(text):
     while len(bins_str) != processed_len:
         temp = bins_str[processed_len: processed_len+8]
         if len(temp) < 6:
-            if not temp.__contains__("1"):
-                break
+            #if not temp.__contains__("1"):
+            #    break
             toappend = "".join(["0" for i in range(6-len(temp))])
             bins_str += toappend
             temp += toappend
@@ -108,7 +107,8 @@ def messageDecode(text):
 
     bins_str = "".join(decoded)
     bin_list = Util.cut_list(bins_str, 8)
-    if bin_list[-1].__contains__("1"):
+    #if bin_list[-1].__contains__("1"):
+    if len(bin_list[-1]) >= 6:
         bin_list[-1] = bin_list[-1] + "".join(["0" for j in range(8-len(bin_list[-1]))])
     else:
         bin_list = bin_list[:-1]

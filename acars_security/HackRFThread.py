@@ -124,7 +124,9 @@ class HackRfEvent(multiprocessing.Process):
                 print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
             while self._hackrf_broadcaster.isStreaming():
-                time.sleep(0.01)
+                time.sleep(0.1)
+
+            #time.sleep(0.1)
 
             result = self._hackrf_broadcaster.stopTX()
             if (result != LibHackRfReturnCode.HACKRF_SUCCESS):

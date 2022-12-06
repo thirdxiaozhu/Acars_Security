@@ -80,17 +80,23 @@ def aaa():
 
 def bbb():
     key = "03"
-    plain = "HJ1KRPVN0HVYK3XBTP0F1SVN9CNV3IX10G255BXY4XYZEWRGXJ5WXO1RXPEBR870Z4N2TJKIXM5VHU0RDESFSC6Z92PS"
+    plain = b"\x63\x0c\xf7"
+    plain_2 = b'\x05\x00\x00\x00\x00\x00\x00'
+    plain_3 = b"+G\x18\xfc\xa3\x06J\xfc\xf9\x8b7\x0b\xd7\x88\xff~\xa2\xc4\xa6\xf6AO\xb5\xa3\x00\x00"
     iv = Security.getIV()
     print(plain)
 
-    tt = Security.symmetricEncrypt(key, iv, plain)
-    print("密文", len(tt))
-    processed_text = Process.messageEncode(tt.encode("latin1"))
-    print(processed_text)
-    print("Messae Encode", len(processed_text))
-    ss = Security.symmetricDecrypt(key, iv, tt.encode("latin1"))
-    print(ss)
+    #tt = Security.symmetricEncrypt(key, iv, plain)
+    #print("密文", len(tt))
+    #processed_text = Process.messageEncode(tt.encode("latin1"))
+    #print(processed_text)
+    #print("Messae Encode", len(processed_text))
+    #ss = Security.symmetricDecrypt(key, iv, tt.encode("latin1"))
+    #print(ss)
+    processed_text = Process.messageEncode(plain_3)
+    print(len(processed_text))
+    print("!!", processed_text.encode("latin1"))
+    print(Process.messageDecode(processed_text))
 
 #aaa()
 bbb()

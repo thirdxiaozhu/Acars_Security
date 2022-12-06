@@ -13,6 +13,8 @@ import Process
 MODE_DSP = 220
 MODE_CMU = 210
 
+MODE_ELSE = 230
+
 
 class Entity:
     WAIT_START = 1000
@@ -43,14 +45,12 @@ class Entity:
             for slice in slices:
                 msg = Message.Message((None, Message.UPLINK, self._sec_level) + paras[:-1] + (slice,))
                 msg.generateIQ()
-
                 msgs.append(msg)
 
         elif mode == MODE_CMU:
             for slice in slices:
                 msg = Message.Message((None, Message.DOWNLINK, self._sec_level) + paras[:-1] + (slice,))
                 msg.generateIQ()
-
                 msgs.append(msg)
 
         return msgs
@@ -138,44 +138,49 @@ class Entity:
         self._iv = iv
 
     def symmetricEncrypt(self, plain_text):
-        cip = Crypto.Security.symmetricEncrypt(self._sym_key, self._iv, plain_text)
-        return cip
+        return Crypto.Security.symmetricEncrypt(self._sym_key, self._iv, plain_text)
 
     def symmetricDecrypt(self, cipher_text):
         return Crypto.Security.symmetricDecrypt(self._sym_key, self._iv, cipher_text)
 
     def receiveMessage(self, msg):
         dict = json.loads(msg)
-
         timestamp = dict.get("timestamp") 
         timestamp = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
 
-        try:
-            orient = "UPLINK" if re.compile(r"[A-Za-z]").match(dict.get("block_id")) else "DOWNLINK"
-        except:
-            orient = "ELSE"
+        ack = "\x15" if dict.get("ack") == False else dict.get("ack")
 
-        text = dict.get("text")
+        try:
+            orient = MODE_DSP if re.compile(r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
+        except:
+            orient = MODE_ELSE
+
+        origin_text = dict.get("text")
 
         processed_text = ""
         sign_text = ""
+        sign_valide = Message.MSG_WITH_NO_SIGN
+        cipher_text = ""
         if self._sec_level == Message.Message.NORMAL:
-            processed_text = text
+            processed_text = origin_text
         elif self._sec_level == Message.Message.CUSTOM:
             try:
-                to_text = Process.messageDecode(text)
+                to_text = Process.messageDecode(origin_text)
                 cipher_len = to_text[0]
                 sign_len = to_text[1]
                 curr_len = 2+cipher_len
+                #cipher_text = to_text[2:curr_len+1]
                 cipher_text = to_text[2:curr_len]
-                sign_text = to_text[curr_len:curr_len+sign_len]
+                sign_text = to_text[curr_len:]
+                sign_valide = self.verifySign( cipher_text, sign_text)
                 processed_text = self.symmetricDecrypt(cipher_text)
             except:
-                processed_text = text
+                processed_text = origin_text
         else:
             pass
-        msg = Message.Message((timestamp, orient, 0, dict.get("mode"), dict.get("label"), dict.get("tail"), \
-             dict.get("block_id"), dict.get("ack"), dict.get("msgno"), dict.get("flight"), processed_text, sign_text))
+
+        msg = Message.ReceivedMessage((timestamp, orient, 0, dict.get("mode"), dict.get("label"), dict.get("tail"), \
+             dict.get("block_id"), ack, dict.get("msgno"), dict.get("flight"), processed_text, origin_text, sign_text, sign_valide, cipher_text))
 
         return msg
 
@@ -186,15 +191,16 @@ class Entity:
             text = paras[7]
 
             processed_text = ""
+            final_text = None
             if self._sec_level == Message.Message.NORMAL:
-                processed_text = text
+                final_text = text
             elif self._sec_level == Message.Message.CUSTOM:
                 cipher_text = self.symmetricEncrypt(text)
                 sign_text = self.getSign(cipher_text).decode("latin1")
-                processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text
-                processed_text = Process.messageEncode(processed_text.encode("latin1"))
+                processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
+                final_text = Process.messageEncode(processed_text.encode("latin1"))
 
-            text_slices = Util.cut_list(processed_text, mode)
+            text_slices = Util.cut_list(final_text, mode)
             msgs = self.generateMsgs(mode, paras, text_slices)
             for msg in msgs:
                 self._hackrf_event.putMessage(msg._IQdata)
@@ -204,8 +210,12 @@ class Entity:
     def getSign(self, cipher):
         pass
 
+    def verifySign(self, cipher, sign):
+        pass
+
     def changeStatu(self):
         self.statu = self.WORKING
+
 
 
 class DSP(Entity):
@@ -234,9 +244,13 @@ class DSP(Entity):
             self._msg_signal.emit(ret, MODE_DSP)
 
     def getSign(self, cipher):
-        print(cipher)
+        #print(cipher)
         super().getSign(cipher)
-        return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem" + "\x00", cipher)
+        return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dsppri.pem" + "\x00", cipher, self._cert_key)
+
+    def verifySign(self, cipher, sign):
+        super().verifySign(cipher, sign)
+        return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem" + "\x00", cipher, sign)
 
 class CMU(Entity):
     def __init__(self) -> None:
@@ -264,4 +278,9 @@ class CMU(Entity):
 
     def getSign(self, cipher):
         super().getSign(cipher)
-        return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher)
+        print("kkkkkkkey", self._cert_key)
+        return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmupri.pem" + "\x00", cipher, self._cert_key)
+
+    def verifySign(self, cipher, sign):
+        super().verifySign(cipher, sign)
+        return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher, sign)

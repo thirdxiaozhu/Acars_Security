@@ -7,6 +7,11 @@ from select import select
 UPLINK = 0
 DOWNLINK = 1
 
+SIGN_IS_VALID = 1
+SIGN_IS_NOT_VALID = -1
+MSG_WITH_NO_SIGN = 0
+
+
 def kkk():
     import Process
     p_conn, s_conn = multiprocessing.Pipe()
@@ -85,6 +90,9 @@ class Message:
     def setText(self, text):
         self._text = text.encode()
 
+    def getText(self):
+        return self._text
+
     def setSecurityLevel(self, lev):
         self._sec_level = lev
 
@@ -128,3 +136,36 @@ class Message:
         dll_test.modulate(byref(mf))
 
         self._IQdata =  string_at(mf.complex_i8, mf.complex_length * 2)
+
+
+class ReceivedMessage(Message):
+    def __init__(self, message_tuple) -> None:
+        super().__init__(message_tuple)
+        self._origin_text = message_tuple[11]
+        self._sign_text = message_tuple[12]
+        self._sign_valid = message_tuple[13]
+        self._cipher_text = message_tuple[14]
+
+    def getOriginText(self):
+        return self._origin_text
+
+    def getCipherText(self):
+        return self._cipher_text
+
+    def getSignText(self):
+        return self._sign_text
+
+    def getSignValid(self):
+        return self._sign_valid
+
+    def getCipherLen(self):
+        return len(self._cipher_text)
+
+    def getSignLen(self):
+        return len(self._sign_text)
+
+    def getMsgTuple(self):
+        tuple = super().getMsgTuple()
+        tuple = (tuple + (self._cipher_text, self._sign_text))
+
+        return tuple

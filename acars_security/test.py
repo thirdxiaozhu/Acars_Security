@@ -9,6 +9,11 @@ import sys
 
 class Window(QMainWindow):
     def __init__(self, parent=None):
+
+        a = [1,2,3,4,5,6,7,8]
+        print(a[2:4])
+
+
         super(Window, self).__init__(parent)
         self.qwebengine = QWebEngineView()
         url = os.getcwd() + os.path.sep + "src/main/assets/map.html"    # 要绝对路径，不然无法加载

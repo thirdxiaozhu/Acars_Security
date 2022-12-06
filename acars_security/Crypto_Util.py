@@ -103,25 +103,9 @@ class Security:
         dll_test.test_x509_cert.argtypes = [c_void_p]
         dll_test.test_x509_cert(byref(se))
 
-    def getSign(path, cipher):
-        filepath_encoded = path.encode("latin1")
-        filepath = (c_char*len(filepath_encoded)).from_buffer_copy(bytearray(filepath_encoded))
-
-        cipher_encoded = cipher.encode("latin1")
-        cipher_text = (c_ubyte*len(cipher_encoded)).from_buffer_copy(bytearray(cipher_encoded))
-        cipherlen = c_size_t(len(cipher_encoded))
-
-        sign_space = cast(create_string_buffer(SIGN_LEN), POINTER(c_ubyte))  
-        signlen = c_size_t(0)
-
-        #dll_test.getSign.argtypes = [c_char_p, c_void_p, c_size_t, c_char_p, c_size_t]
-        dll_test.getSign(filepath, sign_space, byref(signlen), cipher_text, byref(cipherlen))
-        
-        return string_at(sign_space, signlen.value)
-
     def symmetricEncrypt(key, iv, plain_str):
         plain = Process.payloadEncode(plain_str)
-        print("Payload Encode", len(plain))
+        #print("Payload Encode", len(plain))
 
         ce = Ce(key, iv, plain, None)
 
@@ -144,3 +128,36 @@ class Security:
 
         return Process.payloadDecode(plain2)
 
+    def getSign(path, cipher, key):
+        filepath_encoded = path.encode("latin1")
+        filepath = (c_char*len(filepath_encoded)).from_buffer_copy(bytearray(filepath_encoded))
+
+        cipher_encoded = cipher.encode("latin1")
+        cipher_text = (c_ubyte*len(cipher_encoded)).from_buffer_copy(bytearray(cipher_encoded))
+        cipherlen = c_size_t(len(cipher_encoded))
+
+        sign_space = cast(create_string_buffer(SIGN_LEN), POINTER(c_ubyte))  
+        signlen = c_size_t(0)
+
+        prikey = (c_char*len(key)).from_buffer_copy(bytearray(key.encode()))
+        #dll_test.getSign.argtypes = [c_char_p, c_void_p, c_size_t, c_char_p, c_size_t]
+        dll_test.getSign(filepath, sign_space, byref(signlen), cipher_text, cipherlen, prikey)
+        
+        return string_at(sign_space, signlen.value)
+
+    def verySign(path, cipher, signtext):
+        filepath_encoded = path.encode("latin1")
+        filepath = (c_char*len(filepath_encoded)).from_buffer_copy(bytearray(filepath_encoded))
+
+        #cipher_encoded = cipher.encode("latin1")
+        cipher_text = (c_ubyte*len(cipher)).from_buffer_copy(bytearray(cipher))
+        cipherlen = c_size_t(len(cipher))
+
+        #sign_space = cast(create_string_buffer(SIGN_LEN), POINTER(c_ubyte))  
+        sign_text = (c_ubyte*len(signtext)).from_buffer_copy(bytearray(signtext))
+        signlen = c_size_t(len(signtext))
+
+        #dll_test.getSign.argtypes = [c_char_p, c_void_p, c_size_t, c_char_p, c_size_t]
+        ret = dll_test.verifySign(filepath, sign_text, signlen, cipher_text,cipherlen)
+
+        return ret
