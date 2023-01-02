@@ -1,30 +1,26 @@
-from PyQt5.QtWidgets import *
+import os
+import re
+import time
+
+import Attack
+import Digalogs
+import Entity
+import HackRFThread
+import Message
+import OpenSSL
+import Receiver
+import Ui.SubUnit
+import Ui.Ui_Attack
+import Ui.Ui_Cert
+import Ui.Ui_Cert_Detail
+import Ui.Ui_MsgCryDetail
+import Ui.Ui_Stable
+from Crypto_Util import Security
+from dateutil import parser
 from PyQt5 import QtCore
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import time
-import os
-import re
-import OpenSSL
-from dateutil import parser
-
-
-import Ui.SubUnit
-import HackRFThread
-import Receiver
-import Entity
-import Message
-import Attack
-from Crypto_Util import Security
-
-import Ui.Ui_Cert
-import Ui.Ui_Cert_Detail
-import Ui.Ui_Stable
-import Ui.Ui_MsgCryDetail
-import Ui.Ui_Attack
-
-import Digalogs
 
 ALL = 0
 RECV = 1
@@ -87,19 +83,19 @@ class Interface(QtCore.QObject):
         self.cmu_stop_btn = self.mainWindow.findChild(QPushButton, "cmu_stop_btn")
         self.cmu_msg_list = self.mainWindow.findChild(QListWidget, "cmu_msg_list")
 
-        self.dsp_mode_edit = self.mainWindow.findChild(QLineEdit, "dsp_mode_edit")
+        #self.dsp_mode_edit = self.mainWindow.findChild(QLineEdit, "dsp_mode_edit")
         self.dsp_label_edit = self.mainWindow.findChild(QLineEdit, "dsp_label_edit")
         self.dsp_arn_edit = self.mainWindow.findChild(QLineEdit, "dsp_arn_edit")
-        self.dsp_ubi_edit = self.mainWindow.findChild(QLineEdit, "dsp_ubi_edit")
+        #self.dsp_ubi_edit = self.mainWindow.findChild(QLineEdit, "dsp_ubi_edit")
         #self.dsp_ack_edit = self.mainWindow.findChild(QLineEdit, "dsp_ack_edit")
         self.dsp_text_edit = self.mainWindow.findChild(QTextEdit, "dsp_text_edit")
         self.dsp_send_btn = self.mainWindow.findChild(QPushButton, "dsp_send_btn")
         self.dsp_test_stable_btn = self.mainWindow.findChild(QPushButton, "dsp_test_stable_btn")
 
-        self.cmu_mode_edit = self.mainWindow.findChild(QLineEdit, "cmu_mode_edit")
+        #self.cmu_mode_edit = self.mainWindow.findChild(QLineEdit, "cmu_mode_edit")
         self.cmu_label_edit = self.mainWindow.findChild(QLineEdit, "cmu_label_edit")
         self.cmu_arn_edit = self.mainWindow.findChild(QLineEdit, "cmu_arn_edit")
-        self.cmu_dbi_edit = self.mainWindow.findChild(QLineEdit, "cmu_dbi_edit")
+        #self.cmu_dbi_edit = self.mainWindow.findChild(QLineEdit, "cmu_dbi_edit")
         #self.cmu_ack_edit = self.mainWindow.findChild(QLineEdit, "cmu_ack_edit")
         self.cmu_id_edit = self.mainWindow.findChild(QLineEdit, "cmu_id_edit")
         self.cmu_text_edit = self.mainWindow.findChild(QTextEdit, "cmu_text_edit")
@@ -123,6 +119,8 @@ class Interface(QtCore.QObject):
 
         self.dsp_attack_btn = self.mainWindow.findChild(QPushButton, "dsp_attack_btn")
         self.cmu_attack_btn = self.mainWindow.findChild(QPushButton, "cmu_attack_btn")
+
+        self.cmu_confirm_btn = self.mainWindow.findChild(QPushButton, "cmu_confirm_btn")
 
 
         self.initMsgTable()
@@ -165,11 +163,11 @@ class Interface(QtCore.QObject):
         self.dsp_attack_btn.clicked.connect(lambda:self.stimulateAttack(self.dsp_msg_list))
         self.cmu_attack_btn.clicked.connect(lambda:self.stimulateAttack(self.cmu_msg_list))
 
+        self.cmu_confirm_btn.clicked.connect(lambda:self.confirmAircraftInfos())
+
     def getDevices(self):
         self.hackrfs = HackRFThread.getInfo()
-        #print(self.hackrfs)
         self.rtls = Receiver.getRtls()
-        #print(self.rtls)
 
     def initDevices(self, sign):
         if sign == RECV:
@@ -205,11 +203,11 @@ class Interface(QtCore.QObject):
     def confirmDevice(self, sign, combo, label, entity, button):
         serial = combo.currentText()
         if sign == RECV:
-            entity.setRtl(serial, self.addMessageSignal)
+            entity.setRtl(serial)
             self.rtls.remove(serial)
             self.initDevices(RECV)
         elif sign == TRAN:
-            entity.setHackRF(serial)
+            entity.setHackRFSerial(serial)
             self.hackrfs.remove(serial)
             self.initDevices(TRAN)
         else:
@@ -225,16 +223,18 @@ class Interface(QtCore.QObject):
             self.dsp.changeStatu()
             self.dsp.setFrequency(self.dsp_frequency_edit.text())
             self.dsp.setHostAndPort(self.dsp_addr_edit.text())
-            self.dsp.startRtl()
-            #self.dsp.startHackRF()
+            self.dsp.initRtl()
+            self.dsp.initHackRF()
+            #self.dsp.setHackRF(seria)
 
         elif mode == Entity.MODE_CMU:
             self.cmu.setSelfKey(self.cmu_passwd_edit.text())
             self.cmu.changeStatu()
             self.cmu.setFrequency(self.cmu_frequency_edit.text())
             self.cmu.setHostAndPort(self.cmu_addr_edit.text())
-            self.cmu.startRtl()
-            #self.cmu.startHackRF()
+            self.cmu.initRtl()
+            self.cmu.initHackRF()
+            #self.cmu.setHackRF()
 
 
     def stopWorking(self, mode):
@@ -244,20 +244,19 @@ class Interface(QtCore.QObject):
             self.cmu.forceStopDevices()
 
     def send(self, mode):
-
         if mode == Entity.MODE_DSP:
-            paras = self.getParas(Message.UPLINK)
+            paras = self.getParas(Message.MODE_DSP)
             if paras == FAIL:
                 return
 
-            self.dsp.putMessageParas(mode, [paras])
+            self.dsp.putMessageParas([paras])
 
         if mode == Entity.MODE_CMU:
-            paras = self.getParas(Message.DOWNLINK)
+            paras = self.getParas(Message.MODE_CMU)
             if paras == FAIL:
                 return
 
-            self.cmu.putMessageParas(mode, [paras])
+            self.cmu.putMessageParas([paras])
 
 
     def addMessage(self, msg, mode):
@@ -288,27 +287,32 @@ class Interface(QtCore.QObject):
         time.sleep(1)
         os._exit(0)
 
+ 
+
     def getParas(self, mode):
         arn_pattern = re.compile(r"^[A-Z0-9-.]{7}")
         ack_pattern = re.compile(r"^[A-Za-z]")
         ubi_pattern = re.compile(r"[A-Za-z]")
         dbi_pattern = re.compile(r"[0-9]")
 
-        if mode == Message.UPLINK:
-            modeInput = self.dsp_mode_edit.text()
-            arnInput = ("%7s" % self.dsp_arn_edit.text()).replace(" ", ".")
+        if mode == Message.MODE_DSP:
+            modeInput = "2"
+            #arnInput = ("%7s" % self.dsp_arn_edit.text()).replace(" ", ".")
+            arnInput = self.dsp_arn_edit.text()
             labelInput = self.dsp_label_edit.text()
-            dubiInput = self.dsp_ubi_edit.text()
+            #dubiInput = self.dsp_ubi_edit.text()
             #ackInput = self.dsp_ack_edit.text()
+            dubiInput = "A"
             ackInput = ""
             text = self.dsp_text_edit.toPlainText()
-        elif mode == Message.DOWNLINK:
-            modeInput = self.cmu_mode_edit.text()
-            arnInput = ("%7s" % self.cmu_arn_edit.text()).replace(" ", ".")
+        elif mode == Message.MODE_CMU:
+            modeInput = "2"
+            arnInput = self.cmu.getArn()
             labelInput = self.cmu_label_edit.text()
-            idInput = self.cmu_id_edit.text()
-            dubiInput = self.cmu_dbi_edit.text()
+            idInput = self.cmu.getId()
+            #dubiInput = self.cmu_dbi_edit.text()
             #ackInput = self.cmu_ack_edit.text()
+            dubiInput = "3"
             ackInput = ""
             text = self.cmu_text_edit.toPlainText()
         else:
@@ -317,9 +321,9 @@ class Interface(QtCore.QObject):
         if modeInput != "2":
             QMessageBox.critical(None, "Error", "Only mode a is supported temporarily!", QMessageBox.Yes)
             return FAIL
-        if not arn_pattern.match(arnInput):
-            QMessageBox.critical(None, "Error", "Illegal Arn character!", QMessageBox.Yes)
-            return FAIL
+        #if not arn_pattern.match(arnInput):
+        #    QMessageBox.critical(None, "Error", "Illegal Arn character!", QMessageBox.Yes)
+        #    return FAIL
 
         if len(ackInput) != 1 or not ack_pattern.match(ackInput) :
             if ackInput != "":
@@ -336,7 +340,7 @@ class Interface(QtCore.QObject):
             labelInput = "P8"
 
         #Generate context based on context Identifier
-        if mode == Message.UPLINK:
+        if mode == Message.MODE_DSP:
             if not ubi_pattern.match(dubiInput) or len(dubiInput) > 1:
                 if ackInput != "":
                     QMessageBox.critical(None, "Error", "Illegal UBI character!", QMessageBox.Yes)
@@ -409,20 +413,17 @@ class Interface(QtCore.QObject):
         CertDetail(dialog, item.text())
         dialog.show()
         dialog.exec_()
-        #print(item.text())
 
     def scanCerts(self, path, component):
         for item in os.scandir(path):
             if item.is_file() and item.path[-8:-4]=="cert":
                 component.addItem(item.path)
-                #files.append(item.path)
 
 
     def addMsgTableRow(self, paras):
         rows_c = self.msg_table.rowCount()
         rows_c += 1
         self.msg_table.setRowCount(rows_c)
-        #print(self.msg_table.columnCount())
 
         for i in range(self.msg_table.columnCount()):
             newItem = QTableWidgetItem(paras[i])
@@ -470,6 +471,12 @@ class Interface(QtCore.QObject):
         else:
             print("No Choosed Item")
 
+    def confirmAircraftInfos(self):
+        #arn = ("%7s" % self.cmu_arn_edit.text()).replace(" ", ".")
+        arn = self.cmu_arn_edit.text()
+        id = self.cmu_id_edit.text()
+        self.cmu.setArnandId(arn, id)
+
 
 class TestStable(QtCore.QObject):
     addMessageSignal = QtCore.pyqtSignal(object, int)
@@ -499,11 +506,12 @@ class TestStable(QtCore.QObject):
         self.entity.setFrequency("131.45")
         self.entity.setHostAndPort("127.0.0.1:6666")
         self.entity.startRtl()
+        self.entity.initHackRF()
         test_data = ("2", "QQ", "CA1234", "A", "\x15", None, None, "Testing...")
         para_list = []
         for i in range(3):
             para_list.append(test_data)
-        self.entity.putMessageParas(Entity.MODE_DSP, para_list)
+        self.entity.putMessageParas(para_list)
         self.printLog("Transmit", 3)
 
 

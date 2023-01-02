@@ -4,8 +4,8 @@ import multiprocessing
 from select import select
 
 
-UPLINK = 0
-DOWNLINK = 1
+MODE_DSP = 220
+MODE_CMU = 210
 
 SIGN_IS_VALID = 1
 SIGN_IS_NOT_VALID = -1
@@ -47,7 +47,7 @@ class Message:
     CUSTOM = 1
 
     def __init__(self, message_tuple) -> None:
-        #print(message_tuple)
+        print(message_tuple)
         self._timestamp = message_tuple[0]
         self._up_down = message_tuple[1]
         self._sec_level = message_tuple[2]
@@ -59,8 +59,7 @@ class Message:
         self._serial = message_tuple[8]
         self._flight = message_tuple[9]
         self._text = message_tuple[10]
-        #self._crc = message_tuple[11]
-        self._crc = "\x33\x44"
+        self._crc = message_tuple[11] if message_tuple[11] is not None else "\x00\x00"
         self._IQdata = None
 
     def setTimeStamp(self, timestamp):
@@ -114,10 +113,10 @@ class Message:
 
     def generateIQ(self):
         #handle = dll_test._handle
-        dll_test = CDLL("/home/jiaxv/inoproject/Acars_Sim_C/build/libacarstrans.so")
+        dll_test = CDLL("bin/libacarstrans.so")
         mf = message_format()
 
-        mf.isUp = c_int(self._up_down)
+        mf.isUp = c_int(0 if self._up_down == MODE_DSP else 1)
         mf.mode = c_ubyte(ord(self._mode.encode("latin1")))
         mf.arn = (c_ubyte*len(self._ARN)).from_buffer_copy(bytearray(self._ARN.encode()))
         mf.label = (c_ubyte*len(self._label)).from_buffer_copy(bytearray(self._label.encode()))
@@ -126,7 +125,7 @@ class Message:
         mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray((self._text + "\n").encode()))
         mf.crc = (c_ubyte* 2 ).from_buffer_copy(bytearray((self._crc).encode()))
         mf.text_len = c_int(len(self._text))
-        if self._up_down == DOWNLINK:
+        if self._up_down == MODE_CMU:
             mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial.encode()))
             mf.flight = (c_ubyte*len(self._flight)).from_buffer_copy(bytearray(self._flight.encode()))
 

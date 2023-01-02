@@ -104,15 +104,15 @@
              </sizepolicy>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="SafetySettings">
              <property name="geometry">
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>325</width>
-               <height>629</height>
+               <width>208</width>
+               <height>117</height>
               </rect>
              </property>
              <attribute name="label">
@@ -214,8 +214,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>325</width>
-               <height>629</height>
+               <width>98</width>
+               <height>150</height>
               </rect>
              </property>
              <attribute name="label">
@@ -247,8 +247,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>305</width>
-                   <height>547</height>
+                   <width>183</width>
+                   <height>295</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -523,280 +523,362 @@
              </attribute>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
               <item>
-               <widget class="QToolBox" name="toolBox_2">
-                <property name="currentIndex">
+               <layout class="QVBoxLayout" name="verticalLayout_22">
+                <property name="leftMargin">
                  <number>0</number>
                 </property>
-                <widget class="QWidget" name="CMUDevices">
-                 <property name="geometry">
-                  <rect>
-                   <x>0</x>
-                   <y>0</y>
-                   <width>307</width>
-                   <height>549</height>
-                  </rect>
-                 </property>
-                 <attribute name="label">
-                  <string>CMU Devices</string>
-                 </attribute>
-                 <layout class="QVBoxLayout" name="verticalLayout_16">
-                  <property name="spacing">
-                   <number>10</number>
-                  </property>
-                  <property name="leftMargin">
-                   <number>10</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>10</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>10</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>10</number>
-                  </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_28" stretch="2,1,2">
                   <item>
-                   <layout class="QVBoxLayout" name="cmu_devices_layout" stretch="2,2,1,1,1,1,10">
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="1,10,1">
-                      <item>
-                       <widget class="QLabel" name="label_2">
-                        <property name="text">
-                         <string>Receiver</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QComboBox" name="cmu_receiver_combo"/>
-                      </item>
-                      <item>
-                       <widget class="QPushButton" name="cmu_receiver_confirm">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="text">
-                         <string>c</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_11" stretch="1,10,1">
-                      <item>
-                       <widget class="QLabel" name="label_4">
-                        <property name="text">
-                         <string>Transmitter</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QComboBox" name="cmu_transmitter_combo"/>
-                      </item>
-                      <item>
-                       <widget class="QPushButton" name="cmu_transmitter_confirm">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="text">
-                         <string>c</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_17">
-                      <item>
-                       <widget class="QLabel" name="label_11">
-                        <property name="text">
-                         <string>Frequenct (MHz):</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLineEdit" name="cmu_frequency_edit">
-                        <property name="text">
-                         <string>131.45</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_20">
-                      <item>
-                       <widget class="QLabel" name="label_14">
-                        <property name="text">
-                         <string>Host &amp; Port :</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLineEdit" name="cmu_addr_edit">
-                        <property name="text">
-                         <string>127.0.0.1:5556</string>
-                        </property>
-                        <property name="placeholderText">
-                         <string>host : port</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_7">
-                      <item>
-                       <widget class="QLabel" name="label_7">
-                        <property name="text">
-                         <string>Receiver (Rtl-Sdr) :</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLabel" name="cmu_rtl_label">
-                        <property name="text">
-                         <string>None</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_8">
-                      <item>
-                       <widget class="QLabel" name="label_9">
-                        <property name="text">
-                         <string>Transmitter (HackRF) :</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLabel" name="cmu_hackrf_label">
-                        <property name="text">
-                         <string>None</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <spacer name="verticalSpacer_2">
-                      <property name="orientation">
-                       <enum>Qt::Vertical</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>20</width>
-                        <height>40</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="cmu_test_stable_btn">
+                   <widget class="QLabel" name="label_23">
                     <property name="text">
-                     <string>Test Stability</string>
+                     <string>Registration ( ARN ):</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="cmu_start_btn">
-                    <property name="text">
-                     <string>Start</string>
+                   <spacer name="horizontalSpacer_10">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
                     </property>
-                   </widget>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="cmu_stop_btn">
+                   <widget class="QLineEdit" name="cmu_arn_edit">
                     <property name="text">
-                     <string>Stop</string>
+                     <string>B-919A</string>
                     </property>
                    </widget>
                   </item>
                  </layout>
-                </widget>
-                <widget class="QWidget" name="CMUSettings">
-                 <property name="geometry">
-                  <rect>
-                   <x>0</x>
-                   <y>0</y>
-                   <width>172</width>
-                   <height>93</height>
-                  </rect>
-                 </property>
-                 <attribute name="label">
-                  <string>CMU Settings</string>
-                 </attribute>
-                 <layout class="QVBoxLayout" name="verticalLayout_17">
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_31" stretch="2,1,2">
                   <item>
-                   <layout class="QVBoxLayout" name="verticalLayout_11" stretch="1,1,5">
+                   <widget class="QLabel" name="label_26">
+                    <property name="text">
+                     <string>Flight ID :</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_13">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="cmu_id_edit">
+                    <property name="text">
+                     <string>CA1234</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="cmu_confirm_btn">
+                  <property name="text">
+                   <string>Confirm</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QToolBox" name="toolBox_2">
+                  <property name="currentIndex">
+                   <number>0</number>
+                  </property>
+                  <widget class="QWidget" name="CMUDevices">
+                   <property name="geometry">
+                    <rect>
+                     <x>0</x>
+                     <y>0</y>
+                     <width>305</width>
+                     <height>450</height>
+                    </rect>
+                   </property>
+                   <attribute name="label">
+                    <string>CMU Devices</string>
+                   </attribute>
+                   <layout class="QVBoxLayout" name="verticalLayout_16">
+                    <property name="spacing">
+                     <number>10</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>10</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>10</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>10</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>10</number>
+                    </property>
                     <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_2">
+                     <layout class="QVBoxLayout" name="cmu_devices_layout" stretch="2,2,1,1,1,1,10">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
                       <property name="topMargin">
-                       <number>10</number>
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
                       </property>
                       <item>
-                       <widget class="QLabel" name="label_33">
-                        <property name="text">
-                         <string>Password:</string>
-                        </property>
-                       </widget>
+                       <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="1,10,1">
+                        <item>
+                         <widget class="QLabel" name="label_2">
+                          <property name="text">
+                           <string>Receiver</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QComboBox" name="cmu_receiver_combo"/>
+                        </item>
+                        <item>
+                         <widget class="QPushButton" name="cmu_receiver_confirm">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="text">
+                           <string>c</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
                       </item>
                       <item>
-                       <widget class="QLineEdit" name="cmu_passwd_edit">
-                        <property name="text">
-                         <string>iamcmu</string>
+                       <layout class="QHBoxLayout" name="horizontalLayout_11" stretch="1,10,1">
+                        <item>
+                         <widget class="QLabel" name="label_4">
+                          <property name="text">
+                           <string>Transmitter</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QComboBox" name="cmu_transmitter_combo"/>
+                        </item>
+                        <item>
+                         <widget class="QPushButton" name="cmu_transmitter_confirm">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="text">
+                           <string>c</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_17">
+                        <item>
+                         <widget class="QLabel" name="label_11">
+                          <property name="text">
+                           <string>Frequenct (MHz):</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLineEdit" name="cmu_frequency_edit">
+                          <property name="text">
+                           <string>131.45</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_20">
+                        <item>
+                         <widget class="QLabel" name="label_14">
+                          <property name="text">
+                           <string>Host &amp; Port :</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLineEdit" name="cmu_addr_edit">
+                          <property name="text">
+                           <string>127.0.0.1:5556</string>
+                          </property>
+                          <property name="placeholderText">
+                           <string>host : port</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_7">
+                        <item>
+                         <widget class="QLabel" name="label_7">
+                          <property name="text">
+                           <string>Receiver (Rtl-Sdr) :</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLabel" name="cmu_rtl_label">
+                          <property name="text">
+                           <string>None</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_8">
+                        <item>
+                         <widget class="QLabel" name="label_9">
+                          <property name="text">
+                           <string>Transmitter (HackRF) :</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLabel" name="cmu_hackrf_label">
+                          <property name="text">
+                           <string>None</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <spacer name="verticalSpacer_2">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
                         </property>
-                       </widget>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
                       </item>
                      </layout>
                     </item>
                     <item>
-                     <widget class="QPushButton" name="cmu_cert_btn">
+                     <widget class="QPushButton" name="cmu_test_stable_btn">
                       <property name="text">
-                       <string>Generate CMU Certificate</string>
+                       <string>Test Stability</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <spacer name="verticalSpacer_6">
-                      <property name="orientation">
-                       <enum>Qt::Vertical</enum>
+                     <widget class="QPushButton" name="cmu_start_btn">
+                      <property name="text">
+                       <string>Start</string>
                       </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>20</width>
-                        <height>40</height>
-                       </size>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="cmu_stop_btn">
+                      <property name="text">
+                       <string>Stop</string>
                       </property>
-                     </spacer>
+                     </widget>
                     </item>
                    </layout>
-                  </item>
-                 </layout>
-                </widget>
-               </widget>
+                  </widget>
+                  <widget class="QWidget" name="CMUSettings">
+                   <property name="geometry">
+                    <rect>
+                     <x>0</x>
+                     <y>0</y>
+                     <width>172</width>
+                     <height>93</height>
+                    </rect>
+                   </property>
+                   <attribute name="label">
+                    <string>CMU Settings</string>
+                   </attribute>
+                   <layout class="QVBoxLayout" name="verticalLayout_17">
+                    <item>
+                     <layout class="QVBoxLayout" name="verticalLayout_11" stretch="1,1,5">
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_2">
+                        <property name="topMargin">
+                         <number>10</number>
+                        </property>
+                        <item>
+                         <widget class="QLabel" name="label_33">
+                          <property name="text">
+                           <string>Password:</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLineEdit" name="cmu_passwd_edit">
+                          <property name="text">
+                           <string>iamcmu</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="cmu_cert_btn">
+                        <property name="text">
+                         <string>Generate CMU Certificate</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="verticalSpacer_6">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+                </item>
+               </layout>
               </item>
              </layout>
             </widget>
@@ -860,7 +942,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_3" stretch="1,1,1,1,1,1,1,3,1,0,10">
+                 <layout class="QVBoxLayout" name="verticalLayout_3" stretch="1,1,1,3,1,0,10">
                   <property name="leftMargin">
                    <number>10</number>
                   </property>
@@ -891,37 +973,6 @@
                      <set>Qt::AlignCenter</set>
                     </property>
                    </widget>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_21" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_15">
-                      <property name="text">
-                       <string>Mode :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_3">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="dsp_mode_edit">
-                      <property name="text">
-                       <string>2</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout_22" stretch="1,1,1">
@@ -979,82 +1030,11 @@
                     <item>
                      <widget class="QLineEdit" name="dsp_arn_edit">
                       <property name="text">
-                       <string>CA1234</string>
+                       <string>B-919A</string>
                       </property>
                      </widget>
                     </item>
                    </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_25" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_18">
-                      <property name="text">
-                       <string>UBI :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_6">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="dsp_ubi_edit">
-                      <property name="text">
-                       <string>A</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_24" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_19">
-                      <property name="text">
-                       <string>ACK :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_7">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="dsp_ack_edit"/>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <spacer name="verticalSpacer_3">
-                    <property name="orientation">
-                     <enum>Qt::Vertical</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>20</width>
-                      <height>40</height>
-                     </size>
-                    </property>
-                   </spacer>
                   </item>
                   <item>
                    <layout class="QVBoxLayout" name="verticalLayout_9" stretch="0,0">
@@ -1098,7 +1078,7 @@ p, li { white-space: pre-wrap; }
                  </layout>
                 </item>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,1,1,1,1,1,1,3,1,0,10">
+                 <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,1,0,3,1,0,10">
                   <property name="leftMargin">
                    <number>10</number>
                   </property>
@@ -1124,37 +1104,6 @@ p, li { white-space: pre-wrap; }
                      <set>Qt::AlignCenter</set>
                     </property>
                    </widget>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_26" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_21">
-                      <property name="text">
-                       <string>Mode :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_8">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="cmu_mode_edit">
-                      <property name="text">
-                       <string>2</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout_27" stretch="1,1,1">
@@ -1188,124 +1137,17 @@ p, li { white-space: pre-wrap; }
                    </layout>
                   </item>
                   <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_28" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_23">
-                      <property name="text">
-                       <string>ARN :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_10">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="cmu_arn_edit">
-                      <property name="text">
-                       <string>B5678</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_29" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_24">
-                      <property name="text">
-                       <string>DBI :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_11">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="cmu_dbi_edit">
-                      <property name="text">
-                       <string>9</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_30" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_25">
-                      <property name="text">
-                       <string>ACK :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_12">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="cmu_ack_edit"/>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_31" stretch="1,1,1">
-                    <item>
-                     <widget class="QLabel" name="label_26">
-                      <property name="text">
-                       <string>Flight ID :</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_13">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="cmu_id_edit">
-                      <property name="text">
-                       <string>CA1234</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
+                   <spacer name="verticalSpacer_3">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
                   </item>
                   <item>
                    <layout class="QVBoxLayout" name="verticalLayout_10">

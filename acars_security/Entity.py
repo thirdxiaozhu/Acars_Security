@@ -9,6 +9,7 @@ import Util
 import Crypto_Util as Crypto
 import Message
 import Process
+import Protocol
 
 MODE_DSP = 220
 MODE_CMU = 210
@@ -37,41 +38,27 @@ class Entity:
         self._cert_key = None
         self.work_space = "users/"
         self.statu = self.WAIT_START
-
-
-    def generateMsgs(self, mode, paras, slices):
-        msgs = []
-        if mode == MODE_DSP:
-            for slice in slices:
-                msg = Message.Message((None, Message.UPLINK, self._sec_level) + paras[:-1] + (slice,))
-                msg.generateIQ()
-                msgs.append(msg)
-
-        elif mode == MODE_CMU:
-            for slice in slices:
-                msg = Message.Message((None, Message.DOWNLINK, self._sec_level) + paras[:-1] + (slice,))
-                msg.generateIQ()
-                msgs.append(msg)
-
-        return msgs
+        self.protocol = None
 
 
     def getHackRF(self):
-        print(self._hackrf_serial)
         return self._hackrf_serial
 
-    def setHackRF(self, serial):
+    def setHackRFSerial(self, serial):
         self._hackrf_serial = serial
 
     def initHackRF(self):
-        pass
+        self.protocol.setSendingDevice(self._hackrf_serial, self._trans_freq)
+
+    def initRtl(self):
+        self.protocol.setReceivingDevice(self._rtl_serial, self._trans_freq, self._addr)
+        self.protocol.startRtl()
 
     def getRtl(self):
         return self._rtl_serial
 
-    def setRtl(self, serial, signal):
+    def setRtl(self, serial):
         self._rtl_serial = serial
-        self._recv_signal = signal
 
     def setFrequency(self, freq):
         if freq != '':
@@ -95,28 +82,8 @@ class Entity:
     def putTestingSignal(self, signal):
         self._test_signal = signal
 
-    def startHackRF(self):
-        self.HackRFWorkThread = Util.KThread(target=self.hackRFWorking)
-        self.HackRFWorkThread.start()
-
-    def startRtl(self):
-        pass
-        #self._rtl_event.startRecv()
-
-    def hackRFWorking(self):
-        self._hackrf_event.start()
-
-        recv = self.parent_conn.recv()
-        self._hackrf_event.terminate()
-        self.HackRFWorkThread.kill()
-
     def forceStopDevices(self):
-        try:
-            self.parent_conn.send(1)
-            self._rtl_event.stopRecv()
-            del self._rtl_event
-        except AttributeError:
-            pass
+        self.protocol.forceStopDevices()
 
     def setSelfKey(self, key):
         self._cert_key = key
@@ -126,7 +93,6 @@ class Entity:
 
     def setSecurityLevel(self, level):
         self._sec_level = level
-
 
     def compressMsg(self, text):
         for i in text:
@@ -143,8 +109,7 @@ class Entity:
     def symmetricDecrypt(self, cipher_text):
         return Crypto.Security.symmetricDecrypt(self._sym_key, self._iv, cipher_text)
 
-    def receiveMessage(self, msg):
-        dict = json.loads(msg)
+    def receiveMessage(self, dict):
         timestamp = dict.get("timestamp") 
         timestamp = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
 
@@ -179,14 +144,14 @@ class Entity:
         else:
             pass
 
-        msg = Message.ReceivedMessage((timestamp, orient, 0, dict.get("mode"), dict.get("label"), dict.get("tail"), \
+        up_down = MODE_DSP if self.entity_num == MODE_CMU else MODE_CMU
+
+        msg = Message.ReceivedMessage((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"), \
              dict.get("block_id"), ack, dict.get("msgno"), dict.get("flight"), processed_text, origin_text, sign_text, sign_valide, cipher_text))
 
         return msg
 
-    def putMessageParas(self, mode, paras_list):
-        self.initHackRF()
-
+    def putMessageParas(self, paras_list):
         for paras in paras_list:
             text = paras[7]
 
@@ -200,12 +165,10 @@ class Entity:
                 processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
                 final_text = Process.messageEncode(processed_text.encode("latin1"))
 
-            text_slices = Util.cut_list(final_text, mode)
-            msgs = self.generateMsgs(mode, paras, text_slices)
-            for msg in msgs:
-                self._hackrf_event.putMessage(msg._IQdata)
+            self.protocol.appendWaitsend(self._sec_level, paras,final_text, None)
 
-        self.startHackRF()
+        self.protocol.send()
+
 
     def getSign(self, cipher):
         pass
@@ -224,17 +187,7 @@ class DSP(Entity):
         super().__init__()
         self.work_space = self.work_space + "dsp/"
         self.entity_num = MODE_DSP
-
-    def initHackRF(self):
-        super().initHackRF()
-        self.parent_conn, self.son_conn = multiprocessing.Pipe()
-        self._hackrf_event = HackRfEvent(self._hackrf_serial, self._trans_freq, 1, 2, self.son_conn, MODE_DSP)
-
-
-    def startRtl(self):
-        super().startRtl()
-        self._rtl_event = Receiver(self._rtl_serial, self._trans_freq, self._addr, self._recv_signal, MODE_DSP, self)
-        self._rtl_event.startRecv()
+        self.protocol = Protocol.Protocol(self.entity_num, self)
 
     def receiveMessage(self, msg):
         ret = super().receiveMessage(msg)
@@ -244,7 +197,6 @@ class DSP(Entity):
             self._msg_signal.emit(ret, MODE_DSP)
 
     def getSign(self, cipher):
-        #print(cipher)
         super().getSign(cipher)
         return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dsppri.pem" + "\x00", cipher, self._cert_key)
 
@@ -257,16 +209,9 @@ class CMU(Entity):
         super().__init__()
         self.work_space = self.work_space + "cmu/"
         self.entity_num = MODE_CMU
-
-    def initHackRF(self):
-        super().initHackRF()
-        self.parent_conn, self.son_conn = multiprocessing.Pipe()
-        self._hackrf_event = HackRfEvent(self._hackrf_serial, self._trans_freq, 1, 2, self.son_conn, MODE_CMU)
-
-    def startRtl(self):
-        super().startRtl()
-        self._rtl_event = Receiver(self._rtl_serial, self._trans_freq, self._addr, self._recv_signal, MODE_CMU, self)
-        self._rtl_event.startRecv()
+        self.arn = None
+        self.id = None
+        self.protocol = Protocol.Protocol(self.entity_num, self)
 
     def receiveMessage(self, msg):
         ret = super().receiveMessage(msg)
@@ -278,9 +223,18 @@ class CMU(Entity):
 
     def getSign(self, cipher):
         super().getSign(cipher)
-        print("kkkkkkkey", self._cert_key)
         return Crypto.Security.getSign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmupri.pem" + "\x00", cipher, self._cert_key)
 
     def verifySign(self, cipher, sign):
         super().verifySign(cipher, sign)
         return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher, sign)
+
+    def setArnandId(self, arn, id):
+        self.arn = arn
+        self.id = id
+
+    def getArn(self):
+        return self.arn
+
+    def getId(self):
+        return self.id
