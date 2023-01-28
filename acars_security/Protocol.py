@@ -53,7 +53,8 @@ class Protocol:
         text_slices = Util.cut_list(text, self.enum)
         msgs = self.generateMsgs(paras, text_slices, sec_level, crc)
         for msg in msgs:
-            self.waiting_send.append(msg)
+            if crc is None:
+                self.waiting_send.append(msg)
             self._hackrf_event.putIQs(msg._IQdata)
 
     def send(self):
@@ -71,13 +72,16 @@ class Protocol:
                 self.appendWaitsend(0, ("2","\x5F\x7F", arn, "3", "A", "M01A", "CA1234", ""), "", crc)
 
             self.send()
-            self.entity.receiveMessage(dict)
+        self.entity.receiveMessage(dict)
 
 
     def generateMsgs(self, paras, slices, sec_level, crc):
         msgs = []
-        for slice in slices:
-            msg = Message.Message((None, self.enum, sec_level) + paras[:-1] + (slice, crc))
+        for i in range(len(slices)):
+            suffix = Message.Message.ETB
+            if i == len(slices) - 1:
+                suffix = Message.Message.ETX
+            msg = Message.Message((None, self.enum, sec_level) + paras[:-1] + (slices[i], crc, suffix))
             msg.generateIQ()
             msgs.append(msg)
 

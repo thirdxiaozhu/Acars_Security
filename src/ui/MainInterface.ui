@@ -111,8 +111,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>208</width>
-               <height>117</height>
+               <width>325</width>
+               <height>629</height>
               </rect>
              </property>
              <attribute name="label">
@@ -214,8 +214,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>150</height>
+               <width>325</width>
+               <height>629</height>
               </rect>
              </property>
              <attribute name="label">
@@ -247,8 +247,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>183</width>
-                   <height>295</height>
+                   <width>305</width>
+                   <height>547</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1405,8 +1405,8 @@ p, li { white-space: pre-wrap; }
      <string>File</string>
     </property>
     <addaction name="separator"/>
-    <addaction name="actionSave"/>
-    <addaction name="actionLoad"/>
+    <addaction name="action_save"/>
+    <addaction name="action_load"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
     <property name="title">
@@ -1423,12 +1423,12 @@ p, li { white-space: pre-wrap; }
    <addaction name="menuSettings"/>
    <addaction name="menuDevices"/>
   </widget>
-  <action name="actionSave">
+  <action name="action_save">
    <property name="text">
     <string>Save</string>
    </property>
   </action>
-  <action name="actionLoad">
+  <action name="action_load">
    <property name="text">
     <string>Load</string>
    </property>

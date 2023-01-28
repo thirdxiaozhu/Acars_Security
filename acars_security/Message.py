@@ -32,6 +32,7 @@ class message_format(Structure):
                 ("flight", POINTER(c_ubyte)),
                 ("text", POINTER(c_ubyte)),
                 ("crc", POINTER(c_ubyte)),
+                ("suffix", c_ubyte),
                 ("text_len", c_int),
                 ("lsb_with_crc_msg", POINTER(c_ubyte)),
                 ("total_len", c_int),
@@ -45,6 +46,9 @@ class message_format(Structure):
 class Message:
     NORMAL = 0
     CUSTOM = 1
+
+    ETX = "\x03"
+    ETB = "\x17"
 
     def __init__(self, message_tuple) -> None:
         print(message_tuple)
@@ -60,6 +64,7 @@ class Message:
         self._flight = message_tuple[9]
         self._text = message_tuple[10]
         self._crc = message_tuple[11] if message_tuple[11] is not None else "\x00\x00"
+        self._suffix = message_tuple[12]
         self._IQdata = None
 
     def setTimeStamp(self, timestamp):
@@ -99,7 +104,7 @@ class Message:
         return self._sec_level
 
     def getMsgTuple(self):
-        return (self._timestamp, self._up_down, self._sec_level, self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._serial, self._flight, self._text)
+        return (self._timestamp, self._up_down, self._sec_level, self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._serial, self._flight, self._text, self._crc, self._suffix)
 
     def String(self):
         return self._text
@@ -112,7 +117,6 @@ class Message:
 
 
     def generateIQ(self):
-        #handle = dll_test._handle
         dll_test = CDLL("bin/libacarstrans.so")
         mf = message_format()
 
@@ -123,7 +127,8 @@ class Message:
         mf.ack = c_ubyte(ord(self._ACK.encode("latin1")))
         mf.udbi = c_ubyte(ord(self._UDBI.encode("latin1")))
         mf.text = (c_ubyte*len(self._text)).from_buffer_copy(bytearray((self._text + "\n").encode()))
-        mf.crc = (c_ubyte* 2 ).from_buffer_copy(bytearray((self._crc).encode()))
+        mf.crc = (c_ubyte* 2 ).from_buffer_copy(bytearray((self._crc).encode("latin1")))
+        mf.suffix = c_ubyte(ord(self._suffix.encode("latin1")))
         mf.text_len = c_int(len(self._text))
         if self._up_down == MODE_CMU:
             mf.serial = (c_ubyte*len(self._serial)).from_buffer_copy(bytearray(self._serial.encode()))

@@ -94,6 +94,9 @@ class Entity:
     def setSecurityLevel(self, level):
         self._sec_level = level
 
+    def getModeNum(self):
+        return self.entity_num
+
     def compressMsg(self, text):
         for i in text:
             pp = Util.intTo6bit(i)

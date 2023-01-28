@@ -331,5 +331,4 @@ def cut_list(lists, cut_len):
     return res_data
 
 def getMessageTableElement(row, col):
-    #print(row, col, MESSAGE_TABEL[row][col])
     return ord(MESSAGE_TABEL[row][col])

@@ -122,9 +122,13 @@ class Interface(QtCore.QObject):
 
         self.cmu_confirm_btn = self.mainWindow.findChild(QPushButton, "cmu_confirm_btn")
 
+        self.action_save = self.mainWindow.findChild(QAction, "action_save")
+        self.action_load = self.mainWindow.findChild(QAction, "action_load")
+
 
         self.initMsgTable()
         self.initCertList()
+
 
 
     def initEvent(self):
@@ -140,8 +144,8 @@ class Interface(QtCore.QObject):
         self.dsp_stop_btn.clicked.connect(lambda:self.stopWorking(Entity.MODE_DSP))
         self.cmu_start_btn.clicked.connect(lambda: self.startWorking(Entity.MODE_CMU))
         self.cmu_stop_btn.clicked.connect(lambda:self.stopWorking(Entity.MODE_CMU))
-        self.dsp_send_btn.clicked.connect(lambda: self.send(Entity.MODE_DSP))
-        self.cmu_send_btn.clicked.connect(lambda: self.send(Entity.MODE_CMU))
+        self.dsp_send_btn.clicked.connect(lambda: self.send(self.dsp))
+        self.cmu_send_btn.clicked.connect(lambda: self.send(self.cmu))
 
         self.dsp_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_DSP))
         self.cmu_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_CMU))
@@ -164,6 +168,15 @@ class Interface(QtCore.QObject):
         self.cmu_attack_btn.clicked.connect(lambda:self.stimulateAttack(self.cmu_msg_list))
 
         self.cmu_confirm_btn.clicked.connect(lambda:self.confirmAircraftInfos())
+
+        self.action_save.triggered.connect(lambda:self.save())
+        self.action_load.triggered.connect(lambda:self.load())
+
+    def save(self):
+        pass
+
+    def load(self):
+        pass
 
     def getDevices(self):
         self.hackrfs = HackRFThread.getInfo()
@@ -243,21 +256,11 @@ class Interface(QtCore.QObject):
         elif mode == Entity.MODE_CMU:
             self.cmu.forceStopDevices()
 
-    def send(self, mode):
-        if mode == Entity.MODE_DSP:
-            paras = self.getParas(Message.MODE_DSP)
-            if paras == FAIL:
-                return
-
-            self.dsp.putMessageParas([paras])
-
-        if mode == Entity.MODE_CMU:
-            paras = self.getParas(Message.MODE_CMU)
-            if paras == FAIL:
-                return
-
-            self.cmu.putMessageParas([paras])
-
+    def send(self, entity):
+        paras = self.getParas(entity.getModeNum())
+        if paras == FAIL:
+            return
+        entity.putMessageParas([paras])
 
     def addMessage(self, msg, mode):
         self.addMsgTableRow(msg.getMsgTuple())
