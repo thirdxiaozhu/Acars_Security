@@ -42,7 +42,7 @@ class Interface(QtCore.QObject):
         self.initComponents()
         self.initEvent()
         self.getDevices()
-        self.initDevices(ALL)
+        self.reInitDeviceCombos(ALL)
 
         self.dsp.putMsgSignal(self.addMessageSignal)
         self.cmu.putMsgSignal(self.addMessageSignal)
@@ -172,57 +172,68 @@ class Interface(QtCore.QObject):
         self.action_save.triggered.connect(lambda:self.save())
         self.action_load.triggered.connect(lambda:self.load())
 
+    #保存配置文件
     def save(self):
         pass
 
+    #读取配置文件
     def load(self):
         pass
 
+    #获取当前可被调用的rtl/hackrf设备
     def getDevices(self):
         self.hackrfs = HackRFThread.getInfo()
         self.rtls = Receiver.getRtls()
 
-    def initDevices(self, sign):
+    #重新读取并填充设备下拉框
+    def reInitDeviceCombos(self, sign):
         if sign == RECV:
-            self.initRtls(self.dsp_receiver_combo)
-            self.initRtls(self.cmu_receiver_combo)
+            self.reInitRtlCombo(self.dsp_receiver_combo)
+            self.reInitRtlCombo(self.cmu_receiver_combo)
         elif sign == TRAN:
-            self.initHackRFs(self.dsp_transmitter_combo)
-            self.initHackRFs(self.cmu_transmitter_combo)
+            self.reInitHackRFCombo(self.dsp_transmitter_combo)
+            self.reInitHackRFCombo(self.cmu_transmitter_combo)
         else:
-            self.initRtls(self.dsp_receiver_combo)
-            self.initRtls(self.cmu_receiver_combo)
-            self.initHackRFs(self.dsp_transmitter_combo)
-            self.initHackRFs(self.cmu_transmitter_combo)
+            self.reInitRtlCombo(self.dsp_receiver_combo)
+            self.reInitRtlCombo(self.cmu_receiver_combo)
+            self.reInitHackRFCombo(self.dsp_transmitter_combo)
+            self.reInitHackRFCombo(self.cmu_transmitter_combo)
 
-    def initHackRFs(self, combo):
+    def reInitHackRFCombo(self, combo):
         for i in range(combo.count()):
             combo.removeItem(0)
         for i in self.hackrfs:
             combo.addItem(i)
 
+    #无用
     def reloadHackRFs(self):
         for i in range(self.device_combo.count()):
             self.device_combo.removeItem(0)
 
         self.getDevices()
 
-    def initRtls(self, combo):
+    def reInitRtlCombo(self, combo):
         for i in range(combo.count()):
             combo.removeItem(0)
         for i in self.rtls:
             combo.addItem(i)
 
+    #确认选定设备
+    #@param sign: 标识
+    #@param combo: 下拉框组件
+    #@param label: 标签组件
+    #@param entity: 业务实体
+    #@param button: 确认按钮组件
     def confirmDevice(self, sign, combo, label, entity, button):
         serial = combo.currentText()
         if sign == RECV:
             entity.setRtl(serial)
             self.rtls.remove(serial)
-            self.initDevices(RECV)
+            self.reInitDeviceCombos(RECV)
         elif sign == TRAN:
             entity.setHackRFSerial(serial)
             self.hackrfs.remove(serial)
-            self.initDevices(TRAN)
+            self.reInitDeviceCombos(TRAN)
         else:
             return
 
@@ -230,6 +241,8 @@ class Interface(QtCore.QObject):
         combo.setEnabled(False)
         label.setText(serial)
 
+
+    #启动设备
     def startWorking(self, mode):
         if mode == Entity.MODE_DSP:
             self.dsp.setSelfKey(self.dsp_passwd_edit.text())
@@ -249,7 +262,7 @@ class Interface(QtCore.QObject):
             self.cmu.initHackRF()
             #self.cmu.setHackRF()
 
-
+    #停止设备
     def stopWorking(self, mode):
         if mode == Entity.MODE_DSP:
             self.dsp.forceStopDevices()
@@ -266,20 +279,18 @@ class Interface(QtCore.QObject):
         self.addMsgTableRow(msg.getMsgTuple())
 
         item = Ui.SubUnit.MessageListItem(msg)
-        item.setSizeHint(QSize(200, 50))  # 设置QListWidgetItem大小
-        widget = item.getItemWidget()  # 调用上面的函数获取对应
+        item.setSizeHint(QSize(200, 50))  
+        widget = item.getItemWidget()  
 
 
         if mode == Entity.MODE_DSP:
-            #self.dsp_msg_list.addItem(msg.String())
             self.dsp_msg_list.addItem(item)  # 添加item
             self.dsp_msg_list.setItemWidget(
-                item, widget)  # 为item设置widget
+                item, widget) 
         elif mode == Entity.MODE_CMU:
-            #self.cmu_msg_list.addItem(msg.String())
-            self.cmu_msg_list.addItem(item)  # 添加item
+            self.cmu_msg_list.addItem(item) 
             self.cmu_msg_list.setItemWidget(
-                item, widget)  # 为item设置widget
+                item, widget)  
         else:
             pass
 
@@ -290,7 +301,6 @@ class Interface(QtCore.QObject):
         time.sleep(1)
         os._exit(0)
 
- 
 
     def getParas(self, mode):
         arn_pattern = re.compile(r"^[A-Z0-9-.]{7}")
@@ -300,11 +310,8 @@ class Interface(QtCore.QObject):
 
         if mode == Message.MODE_DSP:
             modeInput = "2"
-            #arnInput = ("%7s" % self.dsp_arn_edit.text()).replace(" ", ".")
             arnInput = self.dsp_arn_edit.text()
             labelInput = self.dsp_label_edit.text()
-            #dubiInput = self.dsp_ubi_edit.text()
-            #ackInput = self.dsp_ack_edit.text()
             dubiInput = "A"
             ackInput = ""
             text = self.dsp_text_edit.toPlainText()
@@ -313,8 +320,6 @@ class Interface(QtCore.QObject):
             arnInput = self.cmu.getArn()
             labelInput = self.cmu_label_edit.text()
             idInput = self.cmu.getId()
-            #dubiInput = self.cmu_dbi_edit.text()
-            #ackInput = self.cmu_ack_edit.text()
             dubiInput = "3"
             ackInput = ""
             text = self.cmu_text_edit.toPlainText()

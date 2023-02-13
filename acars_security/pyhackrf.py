@@ -467,7 +467,8 @@ class HackRF(object):
     @classmethod
     def deinitialize(cls):
         result = LibHackRfReturnCode.HACKRF_ERROR_OTHER
-        if (cls.initialized()):
+        print(result, cls.initialized())
+        if cls.initialized():
             for hackrf in cls.__instances:
                 hackrf.stop()
 
@@ -479,6 +480,7 @@ class HackRF(object):
                     cls.__name__ + " class deinitialization failed, error=(%d," + __class__.getHackRfErrorCodeName(
                         result) + ")", result)
 
+        print(result)
         return result
 
     @classmethod

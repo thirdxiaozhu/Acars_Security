@@ -137,7 +137,6 @@ class Entity:
                 cipher_len = to_text[0]
                 sign_len = to_text[1]
                 curr_len = 2+cipher_len
-                #cipher_text = to_text[2:curr_len+1]
                 cipher_text = to_text[2:curr_len]
                 sign_text = to_text[curr_len:]
                 sign_valide = self.verifySign( cipher_text, sign_text)
@@ -170,7 +169,7 @@ class Entity:
 
             self.protocol.appendWaitsend(self._sec_level, paras,final_text, None)
 
-        self.protocol.send()
+        #self.protocol.send()
 
 
     def getSign(self, cipher):
@@ -205,7 +204,7 @@ class DSP(Entity):
 
     def verifySign(self, cipher, sign):
         super().verifySign(cipher, sign)
-        return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem" + "\x00", cipher, sign)
+        return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher, sign)
 
 class CMU(Entity):
     def __init__(self) -> None:
@@ -230,7 +229,7 @@ class CMU(Entity):
 
     def verifySign(self, cipher, sign):
         super().verifySign(cipher, sign)
-        return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher, sign)
+        return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem" + "\x00", cipher, sign)
 
     def setArnandId(self, arn, id):
         self.arn = arn

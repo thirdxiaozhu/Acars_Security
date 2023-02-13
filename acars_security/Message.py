@@ -12,14 +12,6 @@ SIGN_IS_NOT_VALID = -1
 MSG_WITH_NO_SIGN = 0
 
 
-def kkk():
-    import Process
-    p_conn, s_conn = multiprocessing.Pipe()
-    tt = Process.Test(s_conn)
-    tt.start()
-    _IQdata = p_conn.recv()
-
-
 class message_format(Structure):
     _fields_ = [
                 ("isUp", c_int),
@@ -42,6 +34,7 @@ class message_format(Structure):
 
     def __init__(self):
         self.complex_i8 = cast(create_string_buffer(96000*12*2), POINTER(c_ubyte))  #需要首先分配内存
+        self.crc = cast(create_string_buffer(2), POINTER(c_ubyte))
 
 class Message:
     NORMAL = 0
@@ -114,6 +107,12 @@ class Message:
 
     def getIQdata(self):
         return self._IQdata
+    
+    def getCRC(self):
+        return self._crc
+
+    def getCRC_ASCII(self):
+        return self._crc.decode("latin1")
 
 
     def generateIQ(self):
@@ -139,7 +138,8 @@ class Message:
         dll_test.mergeElements(byref(mf))
         dll_test.modulate(byref(mf))
 
-        self._IQdata =  string_at(mf.complex_i8, mf.complex_length * 2)
+        self._IQdata = string_at(mf.complex_i8, mf.complex_length * 2)
+        self._crc = string_at(mf.crc, 2)
 
 
 class ReceivedMessage(Message):

@@ -15,33 +15,6 @@ MODE_CMU = 210
 class Receiver:
     __logger = logging.getLogger("Receiver")
     __logger.setLevel(logging.DEBUG)
-    downlinkhtml = '''
-                <div> 
-                      <font color="red">  time: </font> %s <br>
-                      <font color="red">  frequency: </font> %s <br>
-                      <font color="red">  Mode: </font> %s  <br>
-                      <font color="red">  Label: </font> %s <br>
-                      <font color="red">  Arn: </font> %s  <br>
-                      <font color="red">  Tak: </font> %s  <br>
-                      <font color="red">  DBI: </font> %s  <br>
-                      <font color="red">  FlightID: </font> %s  <br>
-                      <font color="red">  Messge No.: </font> %s  <br>
-                      <font color="red">  Text: </font> %s <br>
-                </div>
-                '''
-    uplinkhtml = '''
-                <div> 
-                      <font color="red">  time: </font> %s <br>
-                      <font color="red">  frequency: </font> %s <br>
-                      <font color="red">  Mode: </font> %s  <br>
-                      <font color="red">  Label: </font> %s <br>
-                      <font color="red">  Arn: </font> %s  <br>
-                      <font color="red">  Tak: </font> %s  <br>
-                      <font color="red">  UBI: </font> %s  <br>
-                      <font color="red">  Text: </font> %s <br>
-                </div>
-                '''
-
 
     def __init__(self, serial, freq, addr, mode, protocol) -> None:
         self.addr = addr
@@ -74,7 +47,7 @@ class Receiver:
         while True:
             data, xxx = self.udpServer.recvfrom(self.bufsize)
             data = data.decode("latin1")
-            self.__logger.debug(data)
+            #self.__logger.debug(data)
             self.protocol.receive(data)
 
 

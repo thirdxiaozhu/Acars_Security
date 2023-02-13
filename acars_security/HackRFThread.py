@@ -56,6 +56,7 @@ class HackRfEvent:
         self.son_conn = son_conn
         self.mode = mode
         self.msg_queue = multiprocessing.Queue()
+        self.msg_iq = None
 
         self._do_stop = False
         self._do_close = False
@@ -106,8 +107,10 @@ class HackRfEvent:
         self._tx_context = hackrf_tx_context()
         #if length != 0:
         self._tx_context.last_tx_pos = 0
-        self._tx_context.buffer_length = 0
+        self._tx_context.buffer_length = len(self.msg_iq)
         self._tx_context.mode = self.mode
+        self._tx_context.buffer = (
+                c_ubyte*self._tx_context.buffer_length).from_buffer_copy(bytearray(self.msg_iq))
 
     #def broadcast_data(self):
 
@@ -128,7 +131,7 @@ class HackRfEvent:
                 print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
             while self._hackrf_broadcaster.isStreaming():
-                time.sleep(0.1)
+                time.sleep(0.3)
 
             result = self._hackrf_broadcaster.stopTX()
             if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
@@ -151,10 +154,11 @@ class HackRfEvent:
 
         self._do_stop = True
 
-        result = HackRF.deinitialize()
-        self.__logger.debug("dein  %d" % result)
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
+        #result = HackRF.deinitialize()
+        #    
+        #self.__logger.debug("dein  %d" % result)
+        #if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
+        #    print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
         self.son_conn.send(res)
 
@@ -174,15 +178,18 @@ class HackRfEvent:
                                POINTER(hackrf_tx_context))
 
         tx_buffer_length = hackrf_transfer.contents.valid_length
-        if user_tx_context.contents.buffer_length == 0:
-            if self.msg_queue.empty():
-                #return 0
-                return -1
-            else:
-                msg = self.msg_queue.get()
-                msg_len = len(msg)
-                user_tx_context.contents.buffer = (c_ubyte * msg_len).from_buffer_copy(msg)
-                user_tx_context.contents.buffer_length = msg_len
+        #msg = bytearray(self.msg_iq)
+        #user_tx_context.contents.buffer = (c_ubyte * len(msg)).from_buffer_copy(msg)
+        #user_tx_context.contents.buffer_length = len(msg)
+        #if user_tx_context.contents.buffer_length == 0:
+        #    if self.msg_queue.empty():
+        #        #return 0
+        #        return -1
+        #    else:
+        #        msg = self.msg_queue.get()
+        #        msg_len = len(msg)
+        #        user_tx_context.contents.buffer = (c_ubyte * msg_len).from_buffer_copy(msg)
+        #        user_tx_context.contents.buffer_length = msg_len
 
         left = user_tx_context.contents.buffer_length - \
             user_tx_context.contents.last_tx_pos
@@ -197,10 +204,11 @@ class HackRfEvent:
         else:
             memmove(addr_dest, addr_src, left)
             memset(addr_dest+left, 0, tx_buffer_length-left)
-            user_tx_context.contents.buffer_length = 0
-            user_tx_context.contents.last_tx_pos = 0
+            #user_tx_context.contents.buffer_length = 0
+            #user_tx_context.contents.last_tx_pos = 0
 
-            return 0
+            return -1
 
     def putIQs(self, iq_data):
-        self.msg_queue.put(iq_data)
+        #self.msg_queue.put(iq_data)
+        self.msg_iq = iq_data

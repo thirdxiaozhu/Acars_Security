@@ -133,11 +133,15 @@ if __name__ == "__main__":
     #encode_test()
     #_8bits = "\x03"
     #_8bits = "\x7c"
-    #_8bits = b'\xbe\xeb\x90F\xcb\xd0JKO(\xa4\x99I\x05\x11\x96\xcb8\x97\r\xe1I\x05\x11A\x04\x80\x19\xa4\xfe\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    _8bits = "||||||||"
+    _8bits = '30%O%G2R*G2#X9M@NAG1BF8Y7LA2J3J%S7A0AKFNJ8BKT4#3PP3NAEEI%XGQAZVJE1MWHA#1KONQ2PPWW2T@MGYCT0BUVNZT*EXIW5ZA6YPJDVHE%J3X10180@V8L#DOE@M7IVDOQE*OZSEO4%5GNH11*H2F20T%PL05V#*VP5C7UK3V#U4VV3TZMU4VV3TZMU4VV3TZMU4VV3TZMAC'
+    #_8bits = "||||||||"
     ss = payloadEncode(_8bits)
     print(ss)
-    mm = payloadDecode(ss)
+    aa = messageEncode(ss)
+    print(aa)
+    tt = messageDecode(aa)
+    print(tt)
+    mm = payloadDecode(tt)
     print(mm)
     #aa = messageEncode(_8bits)
     #print(aa)
