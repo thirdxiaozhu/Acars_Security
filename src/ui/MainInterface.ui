@@ -104,7 +104,7 @@
              </sizepolicy>
             </property>
             <property name="currentIndex">
-             <number>2</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="SafetySettings">
              <property name="geometry">
@@ -120,90 +120,212 @@
              </attribute>
              <layout class="QVBoxLayout" name="verticalLayout_8">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout_7" stretch="1,1,0,2">
+               <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0">
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_32" stretch="0,2">
-                  <item>
-                   <widget class="QLabel" name="label_28">
-                    <property name="text">
-                     <string>Protection Modes</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QComboBox" name="security_mode_combo">
-                    <item>
-                     <property name="text">
-                      <string>NONE</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>CUSTOM</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>AUTH</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>BOTH</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>SIGN</string>
-                     </property>
-                    </item>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_36">
-                  <property name="leftMargin">
+                 <widget class="QToolBox" name="ca_settings">
+                  <property name="currentIndex">
                    <number>0</number>
                   </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="QLabel" name="label_34">
-                    <property name="text">
-                     <string>Symmetric key</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="symmetrickey_edit">
-                    <property name="text">
-                     <string>AirChina</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="confirm_symkey_btn">
-                  <property name="text">
-                   <string>Confirm</string>
-                  </property>
+                  <widget class="QWidget" name="normal_settings">
+                   <property name="geometry">
+                    <rect>
+                     <x>0</x>
+                     <y>0</y>
+                     <width>305</width>
+                     <height>547</height>
+                    </rect>
+                   </property>
+                   <attribute name="label">
+                    <string>Normal Settings</string>
+                   </attribute>
+                   <layout class="QVBoxLayout" name="verticalLayout_24">
+                    <item>
+                     <layout class="QVBoxLayout" name="verticalLayout_23">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_32" stretch="0,2">
+                        <item>
+                         <widget class="QLabel" name="label_28">
+                          <property name="text">
+                           <string>Protection Modes</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QComboBox" name="security_mode_combo">
+                          <item>
+                           <property name="text">
+                            <string>NONE</string>
+                           </property>
+                          </item>
+                          <item>
+                           <property name="text">
+                            <string>CUSTOM</string>
+                           </property>
+                          </item>
+                          <item>
+                           <property name="text">
+                            <string>CUSTOM2</string>
+                           </property>
+                          </item>
+                          <item>
+                           <property name="text">
+                            <string>AUTH</string>
+                           </property>
+                          </item>
+                          <item>
+                           <property name="text">
+                            <string>BOTH</string>
+                           </property>
+                          </item>
+                          <item>
+                           <property name="text">
+                            <string>SIGN</string>
+                           </property>
+                          </item>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_36">
+                        <property name="leftMargin">
+                         <number>0</number>
+                        </property>
+                        <property name="topMargin">
+                         <number>0</number>
+                        </property>
+                        <item>
+                         <widget class="QLabel" name="label_34">
+                          <property name="text">
+                           <string>Symmetric key</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLineEdit" name="symmetrickey_edit">
+                          <property name="text">
+                           <string>AirChina</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="confirm_symkey_btn">
+                        <property name="text">
+                         <string>Confirm</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="cus_handshake_btn">
+                        <property name="text">
+                         <string>Custom2 handshake</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="verticalSpacer_7">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_2">
+                   <property name="geometry">
+                    <rect>
+                     <x>0</x>
+                     <y>0</y>
+                     <width>305</width>
+                     <height>547</height>
+                    </rect>
+                   </property>
+                   <attribute name="label">
+                    <string>CA Settings</string>
+                   </attribute>
+                   <layout class="QVBoxLayout" name="verticalLayout_26">
+                    <item>
+                     <layout class="QVBoxLayout" name="verticalLayout_25">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>10</number>
+                      </property>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_12">
+                        <property name="topMargin">
+                         <number>0</number>
+                        </property>
+                        <item>
+                         <widget class="QLabel" name="label_15">
+                          <property name="text">
+                           <string>Password:</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QLineEdit" name="ca_passwd_edit">
+                          <property name="text">
+                           <string>iamca</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="ca_cert_btn">
+                        <property name="text">
+                         <string>Generate CA Certificate</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="verticalSpacer_4">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
                  </widget>
-                </item>
-                <item>
-                 <spacer name="verticalSpacer_4">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>20</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                 </spacer>
                 </item>
                </layout>
               </item>
@@ -240,7 +362,7 @@
               <item>
                <widget class="QToolBox" name="toolBox">
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>1</number>
                 </property>
                 <widget class="QWidget" name="DspDevices">
                  <property name="geometry">
@@ -441,8 +563,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>185</width>
-                   <height>102</height>
+                   <width>305</width>
+                   <height>547</height>
                   </rect>
                  </property>
                  <attribute name="label">

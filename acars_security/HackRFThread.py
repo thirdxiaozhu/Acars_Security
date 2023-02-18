@@ -55,7 +55,6 @@ class HackRfEvent:
         self.freq = float(freq)
         self.son_conn = son_conn
         self.mode = mode
-        self.msg_queue = multiprocessing.Queue()
         self.msg_iq = None
 
         self._do_stop = False
@@ -112,8 +111,6 @@ class HackRfEvent:
         self._tx_context.buffer = (
                 c_ubyte*self._tx_context.buffer_length).from_buffer_copy(bytearray(self.msg_iq))
 
-    #def broadcast_data(self):
-
 
     def startWorking(self):
         self.to_start = multiprocessing.Process(target=self.run, name="hackrfrun")
@@ -131,7 +128,7 @@ class HackRfEvent:
                 print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
             while self._hackrf_broadcaster.isStreaming():
-                time.sleep(0.3)
+                time.sleep(1)
 
             result = self._hackrf_broadcaster.stopTX()
             if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
@@ -170,26 +167,12 @@ class HackRfEvent:
 
     def isStopThreadEvent(self):
         pass
-    def getMsgQueue(self):
-        return self.msg_queue
 
     def hackrfTXCB(self, hackrf_transfer):
         user_tx_context = cast(hackrf_transfer.contents.tx_ctx,
                                POINTER(hackrf_tx_context))
 
         tx_buffer_length = hackrf_transfer.contents.valid_length
-        #msg = bytearray(self.msg_iq)
-        #user_tx_context.contents.buffer = (c_ubyte * len(msg)).from_buffer_copy(msg)
-        #user_tx_context.contents.buffer_length = len(msg)
-        #if user_tx_context.contents.buffer_length == 0:
-        #    if self.msg_queue.empty():
-        #        #return 0
-        #        return -1
-        #    else:
-        #        msg = self.msg_queue.get()
-        #        msg_len = len(msg)
-        #        user_tx_context.contents.buffer = (c_ubyte * msg_len).from_buffer_copy(msg)
-        #        user_tx_context.contents.buffer_length = msg_len
 
         left = user_tx_context.contents.buffer_length - \
             user_tx_context.contents.last_tx_pos
@@ -210,5 +193,4 @@ class HackRfEvent:
             return -1
 
     def putIQs(self, iq_data):
-        #self.msg_queue.put(iq_data)
         self.msg_iq = iq_data

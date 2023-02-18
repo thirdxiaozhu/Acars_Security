@@ -98,8 +98,8 @@ def bbb():
     print("!!", processed_text.encode("latin1"))
     print(Process.messageDecode(processed_text))
 
-#aaa()
-bbb()
+aaa()
+#bbb()
 
 
 

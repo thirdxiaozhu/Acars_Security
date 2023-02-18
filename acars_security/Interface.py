@@ -32,20 +32,25 @@ FAIL = 1
 
 
 class Interface(QtCore.QObject):
-    addMessageSignal = QtCore.pyqtSignal(object, int)
+    addBlockSignal = QtCore.pyqtSignal(object, int)
+    addCompleteMsgSignal = QtCore.pyqtSignal(object, int)
+    
 
     def __init__(self, mainWindow) -> None:
         super(Interface, self).__init__()
         self.mainWindow = mainWindow
         self.dsp = Entity.DSP()
         self.cmu = Entity.CMU()
+        self.ca = Entity.CA()
         self.initComponents()
         self.initEvent()
         self.getDevices()
         self.reInitDeviceCombos(ALL)
 
-        self.dsp.putMsgSignal(self.addMessageSignal)
-        self.cmu.putMsgSignal(self.addMessageSignal)
+        self.dsp.putSignals(self.addBlockSignal, self.addCompleteMsgSignal)
+        self.cmu.putSignals(self.addBlockSignal, self.addCompleteMsgSignal)
+        self.dsp.setCAEntity(self.ca)
+        self.cmu.setCAEntity(self.ca)
 
     def initComponents(self):
         self.dsp_receiver_combo = self.mainWindow.findChild(
@@ -107,6 +112,8 @@ class Interface(QtCore.QObject):
         self.dsp_cert_btn = self.mainWindow.findChild(QPushButton, "dsp_cert_btn")
         self.cmu_passwd_edit = self.mainWindow.findChild(QLineEdit, "cmu_passwd_edit")
         self.cmu_cert_btn = self.mainWindow.findChild(QPushButton, "cmu_cert_btn")
+        self.ca_passwd_edit = self.mainWindow.findChild(QLineEdit, "ca_passwd_edit")
+        self.ca_cert_btn = self.mainWindow.findChild(QPushButton, "ca_cert_btn")
         self.symmetrickey_edit = self.mainWindow.findChild(QLineEdit, "symmetrickey_edit")
 
         self.security_mode_combo = self.mainWindow.findChild(QComboBox, "security_mode_combo")
@@ -121,6 +128,9 @@ class Interface(QtCore.QObject):
         self.cmu_attack_btn = self.mainWindow.findChild(QPushButton, "cmu_attack_btn")
 
         self.cmu_confirm_btn = self.mainWindow.findChild(QPushButton, "cmu_confirm_btn")
+
+        self.cus_handshake_btn = self.mainWindow.findChild(QPushButton, "cus_handshake_btn")
+        self.cus_handshake_btn.setEnabled(False)
 
         self.action_save = self.mainWindow.findChild(QAction, "action_save")
         self.action_load = self.mainWindow.findChild(QAction, "action_load")
@@ -149,12 +159,14 @@ class Interface(QtCore.QObject):
 
         self.dsp_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_DSP))
         self.cmu_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_CMU))
+        self.ca_cert_btn.clicked.connect(lambda: self.getCert(Entity.MODE_CA))
         self.confirm_symkey_btn.clicked.connect(lambda: self.setSymmetricKey())
 
         self.dsp_test_stable_btn.clicked.connect(lambda: self.testStable(Entity.MODE_DSP))
         self.cmu_test_stable_btn.clicked.connect(lambda: self.testStable(Entity.MODE_CMU))
 
-        self.addMessageSignal.connect(self.addMessage)
+        self.addBlockSignal.connect(self.addBlock)
+        self.addCompleteMsgSignal.connect(self.addCompleteMsg)
         self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
         self.cmu_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.cmu_certs_list))
 
@@ -168,6 +180,8 @@ class Interface(QtCore.QObject):
         self.cmu_attack_btn.clicked.connect(lambda:self.stimulateAttack(self.cmu_msg_list))
 
         self.cmu_confirm_btn.clicked.connect(lambda:self.confirmAircraftInfos())
+
+        self.cus_handshake_btn.clicked.connect(lambda: self.cus2Handshake())
 
         self.action_save.triggered.connect(lambda:self.save())
         self.action_load.triggered.connect(lambda:self.load())
@@ -275,9 +289,26 @@ class Interface(QtCore.QObject):
             return
         entity.putMessageParas([paras])
 
-    def addMessage(self, msg, mode):
+    def addBlock(self, msg, mode):
         self.addMsgTableRow(msg.getMsgTuple())
 
+        #item = Ui.SubUnit.MessageListItem(msg)
+        #item.setSizeHint(QSize(200, 50))  
+        #widget = item.getItemWidget()  
+
+
+        #if mode == Entity.MODE_DSP:
+        #    self.dsp_msg_list.addItem(item)  # 添加item
+        #    self.dsp_msg_list.setItemWidget(
+        #        item, widget) 
+        #elif mode == Entity.MODE_CMU:
+        #    self.cmu_msg_list.addItem(item) 
+        #    self.cmu_msg_list.setItemWidget(
+        #        item, widget)  
+        #else:
+        #    pass
+
+    def addCompleteMsg(self, msg, mode):
         item = Ui.SubUnit.MessageListItem(msg)
         item.setSizeHint(QSize(200, 50))  
         widget = item.getItemWidget()  
@@ -340,7 +371,7 @@ class Interface(QtCore.QObject):
             else:
                 ackInput = "%c" % (0x15)
 
-        if self.getSecurityMode() != Message.Message.CUSTOM:
+        if self.getSecurityMode() == Message.Message.NORMAL:
             if len(labelInput) > 2:
                 QMessageBox.critical(None, "Error", "Length of label more than 2!", QMessageBox.Yes)
                 return FAIL
@@ -357,7 +388,7 @@ class Interface(QtCore.QObject):
                     dubiInput = 0x15
             formaltext = text
 
-            return (modeInput, labelInput, arnInput, dubiInput, ackInput, None, None ,formaltext)
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, None,formaltext)
 
         else:
             if not dbi_pattern.match(dubiInput) or len(dubiInput) > 1:
@@ -368,12 +399,10 @@ class Interface(QtCore.QObject):
                 QMessageBox.critical(None, "Error", "Length of flight id not equals to 6!", QMessageBox.Yes)
                 return FAIL
 
-            msgNo = "M01A"
             FlightID = idInput
-            #formaltext = msgNo + FlightID + text
             formaltext = text
 
-            return (modeInput, labelInput, arnInput, dubiInput, ackInput, msgNo, FlightID, formaltext)
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, FlightID, formaltext)
 
     def getCert(self, mode):
         dialog = QDialog()
@@ -385,6 +414,9 @@ class Interface(QtCore.QObject):
         elif mode == Entity.MODE_CMU:
             self.cmu.setSelfKey(self.cmu_passwd_edit.text())
             CertInterface(dialog, self.cmu)
+        elif mode == Entity.MODE_CA:
+            self.ca.setSelfKey(self.ca_passwd_edit.text())
+            CertInterface(dialog, self.ca)
         dialog.show()
         dialog.exec_()
 
@@ -394,6 +426,8 @@ class Interface(QtCore.QObject):
             return Message.Message.NORMAL
         elif index == 1:
             return Message.Message.CUSTOM
+        elif index == 2:
+            return Message.Message.CUSTOM2
 
     def initMsgTable(self):
         self.msg_table.setColumnCount(11)
@@ -401,8 +435,18 @@ class Interface(QtCore.QObject):
         self.msg_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.msg_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.msg_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Number", "FlightID", "Text"])
+        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Number", "FlightID", "Text", "Serial"])
         self.msg_table.doubleClicked.connect(self.double_click_table_view_item)
+
+    def addMsgTableRow(self, paras):
+        rows_c = self.msg_table.rowCount()
+        rows_c += 1
+        self.msg_table.setRowCount(rows_c)
+
+        for i in range(self.msg_table.columnCount()):
+            newItem = QTableWidgetItem(paras[i])
+            self.msg_table.setItem(rows_c - 1,i,newItem)
+
 
     def double_click_table_view_item(self,qModelIndex):
         print(qModelIndex.row())
@@ -428,23 +472,25 @@ class Interface(QtCore.QObject):
                 component.addItem(item.path)
 
 
-    def addMsgTableRow(self, paras):
-        rows_c = self.msg_table.rowCount()
-        rows_c += 1
-        self.msg_table.setRowCount(rows_c)
-
-        for i in range(self.msg_table.columnCount()):
-            newItem = QTableWidgetItem(paras[i])
-            self.msg_table.setItem(rows_c - 1,i,newItem)
-
     def setSymmetricKey(self):
         key = self.symmetrickey_edit.text()
         iv = Security.getIV()
         self.dsp.setSymmetricKeyandIV(key, iv)
         self.cmu.setSymmetricKeyandIV(key, iv)
 
-        self.dsp.setSecurityLevel(self.getSecurityMode())
-        self.cmu.setSecurityLevel(self.getSecurityMode())
+        sec_level = self.getSecurityMode()
+
+        self.dsp.setSecurityLevel(sec_level)
+        self.cmu.setSecurityLevel(sec_level)
+
+        if sec_level == Message.Message.CUSTOM2:
+            self.dsp_send_btn.setEnabled(False)
+            self.cmu_send_btn.setEnabled(False)
+            self.cus_handshake_btn.setEnabled(True)
+        else:
+            self.dsp_send_btn.setEnabled(True)
+            self.cmu_send_btn.setEnabled(True)
+            self.cus_handshake_btn.setEnabled(False)
 
     def testStable(self, mode):
         dialog = Digalogs.TestTransDialog()
@@ -486,6 +532,10 @@ class Interface(QtCore.QObject):
         self.cmu.setArnandId(arn, id)
 
 
+    def cus2Handshake(self):
+        self.cmu.putMessageParas([("2", "P8", self.cmu.getArn(), "2", "\x15", self.cmu.getId(), "Hello")])
+
+
 class TestStable(QtCore.QObject):
     addMessageSignal = QtCore.pyqtSignal(object, int)
     def __init__(self, dialog, entity) -> None:
@@ -515,7 +565,7 @@ class TestStable(QtCore.QObject):
         self.entity.setHostAndPort("127.0.0.1:6666")
         self.entity.startRtl()
         self.entity.initHackRF()
-        test_data = ("2", "QQ", "CA1234", "A", "\x15", None, None, "Testing...")
+        test_data = ("2", "QQ", "CA1234", "A", "\x15", None, "Testing...")
         para_list = []
         for i in range(3):
             para_list.append(test_data)
@@ -648,7 +698,7 @@ class MsgDetail:
         """
 
         self.origninal_data_edit.append(detail % (self.msg.getOriginText()))
-        self.plaintext_edit.append(detail % (self.msg.getText()))
+        self.plaintext_edit.append(detail % (self.msg.getProcessedText()))
         self.ciphertext_edit.append(detail % (self.msg.getCipherText()))
         self.signature_edit.append(detail % (self.msg.getSignText()))
         self.cipher_len_line.setText(str(self.msg.getCipherLen()))

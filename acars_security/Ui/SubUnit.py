@@ -9,7 +9,7 @@ class MessageListItem(QtWidgets.QListWidgetItem):
     def __init__(self, msg) -> None:
         super(MessageListItem, self).__init__()
         self.msg = msg
-        self.show_string = msg.String()
+        self.show_string = msg.getProcessedText()
 
     def getItemWidget(self):
 

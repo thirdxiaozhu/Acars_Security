@@ -13,8 +13,18 @@ import Protocol
 
 MODE_DSP = 220
 MODE_CMU = 210
+MODE_CA = 230
 
-MODE_ELSE = 230
+MODE_ELSE = 240
+
+C2_WAIT_HANDSHAKE = 1001
+C2_CMU_HELLO_SEND = 1002
+C2_DSP_HELLO_RECEIVED = 1003
+C2_DSP_CERT_SEND = 1004
+C2_CMU_CERT_RECEIVED = 1005
+C2_CMU_KEY_SEND = 1006
+C2_DSP_KEY_RECEIVED = 1007
+C2_DONE = 1008
 
 
 class Entity:
@@ -31,7 +41,8 @@ class Entity:
         self._rtl_event = None
         self._sym_key = None
         self._iv = None
-        self._msg_signal = None
+        self._blk_signal = None
+        self._com_signal = None
         self._test_signal = None
         self._sec_level = 0
         self.entity_num = None
@@ -39,7 +50,7 @@ class Entity:
         self.work_space = "users/"
         self.statu = self.WAIT_START
         self.protocol = None
-
+        self.custom2_statu = None
 
     def getHackRF(self):
         return self._hackrf_serial
@@ -51,7 +62,8 @@ class Entity:
         self.protocol.setSendingDevice(self._hackrf_serial, self._trans_freq)
 
     def initRtl(self):
-        self.protocol.setReceivingDevice(self._rtl_serial, self._trans_freq, self._addr)
+        self.protocol.setReceivingDevice(
+            self._rtl_serial, self._trans_freq, self._addr)
         self.protocol.startRtl()
 
     def getRtl(self):
@@ -76,8 +88,9 @@ class Entity:
     def genEntityNum(self):
         return self.entity_num
 
-    def putMsgSignal(self, signal):
-        self._msg_signal = signal
+    def putSignals(self, blk_signal, com_signal):
+        self._blk_signal = blk_signal
+        self._com_signal = com_signal
 
     def putTestingSignal(self, signal):
         self._test_signal = signal
@@ -89,13 +102,28 @@ class Entity:
         self._cert_key = key
 
     def setCert(self, paras):
-        Crypto.Security.cert_test(self.work_space, paras, self.entity_num, self._cert_key)
+        pass
+        #self.ca.genClientCert(self.work_space, paras, self.entity_num, self._cert_key)
+        #Crypto.Security.cert_test(self.work_space, paras, self.entity_num, self._cert_key)
 
     def setSecurityLevel(self, level):
         self._sec_level = level
 
     def getModeNum(self):
         return self.entity_num
+
+    def getSign(self, cipher):
+        pass
+
+    def verifySign(self, cipher, sign):
+        pass
+
+    def changeStatu(self):
+        self.statu = self.WORKING
+
+    def getDSPCert(self):
+        return Crypto.Security.getCert("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem")
+
 
     def compressMsg(self, text):
         for i in text:
@@ -111,19 +139,36 @@ class Entity:
 
     def symmetricDecrypt(self, cipher_text):
         return Crypto.Security.symmetricDecrypt(self._sym_key, self._iv, cipher_text)
+    
+    def getSynKey(self, cert):
+        ret = Crypto.Security.verifyCert(cert)
+        if ret == 0:
+            pass
+        else:
+            pass
 
-    def receiveMessage(self, dict):
-        timestamp = dict.get("timestamp") 
-        timestamp = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
-
+    #收到数据块
+    def receiveBlock(self, dict):
+        timestamp = dict.get("timestamp")
+        timestamp = datetime.fromtimestamp(
+            timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
         ack = "\x15" if dict.get("ack") == False else dict.get("ack")
-
         try:
-            orient = MODE_DSP if re.compile(r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
+            orient = MODE_DSP if re.compile(
+                r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
         except:
             orient = MODE_ELSE
 
-        origin_text = dict.get("text")
+        up_down = MODE_DSP if self.entity_num == MODE_CMU else MODE_CMU
+
+        msg = Message.Message((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"),
+                               dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end")))
+
+        return msg
+
+    #处理由数个数据块组合成的完整数据报
+    def receiveCompleteMsg(self, com_msg):
+        origin_text = com_msg
 
         processed_text = ""
         sign_text = ""
@@ -134,28 +179,43 @@ class Entity:
         elif self._sec_level == Message.Message.CUSTOM:
             try:
                 to_text = Process.messageDecode(origin_text)
-                cipher_len = to_text[0]
-                sign_len = to_text[1]
-                curr_len = 2+cipher_len
-                cipher_text = to_text[2:curr_len]
-                sign_text = to_text[curr_len:]
-                sign_valide = self.verifySign( cipher_text, sign_text)
+                sign_len = to_text[0]
+                curr_len = 1+sign_len
+                sign_text = to_text[1:curr_len]
+                cipher_text = to_text[curr_len:]
+
+                sign_valide = self.verifySign(cipher_text, sign_text)
                 processed_text = self.symmetricDecrypt(cipher_text)
             except:
                 processed_text = origin_text
+        elif self._sec_level == Message.Message.CUSTOM2:
+            if self.entity_num == MODE_DSP:
+                #收到“hello”
+                if self.custom2_statu == C2_WAIT_HANDSHAKE:
+                    self.custom2_statu = C2_DSP_HELLO_RECEIVED
+                    processed_text = origin_text
+                    self.putMessageParas(
+                        [("2", "P8", self.getCurrentArn(), "A", "\x15", None, self.getDSPCert())])
+            elif self.entity_num == MODE_CMU:
+                #收到地面站证书
+                if self.custom2_statu == C2_CMU_HELLO_SEND:
+                    self.custom2_statu = C2_CMU_CERT_RECEIVED
+                    processed_text = Process.messageDecode(origin_text)
+                    self.getSynKey(processed_text)
+                    ret = Crypto.Security.verifyCert(processed_text)
+
         else:
             pass
 
-        up_down = MODE_DSP if self.entity_num == MODE_CMU else MODE_CMU
-
-        msg = Message.ReceivedMessage((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"), \
-             dict.get("block_id"), ack, dict.get("msgno"), dict.get("flight"), processed_text, origin_text, sign_text, sign_valide, cipher_text))
+        msg = Message.CompleteMessage(
+            (origin_text, processed_text, sign_text, sign_valide, cipher_text))
 
         return msg
 
+    #根据安全模式进行预处理
     def putMessageParas(self, paras_list):
         for paras in paras_list:
-            text = paras[7]
+            text = paras[6]
 
             processed_text = ""
             final_text = None
@@ -164,23 +224,19 @@ class Entity:
             elif self._sec_level == Message.Message.CUSTOM:
                 cipher_text = self.symmetricEncrypt(text)
                 sign_text = self.getSign(cipher_text).decode("latin1")
-                processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
-                final_text = Process.messageEncode(processed_text.encode("latin1"))
+                processed_text = chr(len(sign_text)) + sign_text + cipher_text
+                final_text = Process.messageEncode(
+                    processed_text.encode("latin1"))
+            elif self._sec_level == Message.Message.CUSTOM2:
+                if self.custom2_statu == C2_WAIT_HANDSHAKE:  # 针对CMU
+                    self.custom2_statu = C2_CMU_HELLO_SEND
+                    final_text = text
+                if self.custom2_statu == C2_DSP_HELLO_RECEIVED:  # 针对收到“hello”的DSP
+                    self.custom2_statu = C2_DSP_CERT_SEND
+                    final_text = Process.messageEncode(text)
 
-            self.protocol.appendWaitsend(self._sec_level, paras,final_text, None)
-
-        #self.protocol.send()
-
-
-    def getSign(self, cipher):
-        pass
-
-    def verifySign(self, cipher, sign):
-        pass
-
-    def changeStatu(self):
-        self.statu = self.WORKING
-
+            self.protocol.appendWaitsend(
+                self._sec_level, paras, final_text, None)
 
 
 class DSP(Entity):
@@ -189,14 +245,21 @@ class DSP(Entity):
         super().__init__()
         self.work_space = self.work_space + "dsp/"
         self.entity_num = MODE_DSP
-        self.protocol = Protocol.Protocol(self.entity_num, self)
+        self.custom2_statu = C2_WAIT_HANDSHAKE
+        self.current_arn = None
+        self.protocol = Protocol.DSPProtocol(self.entity_num, self)
+        self.ca = None
 
-    def receiveMessage(self, msg):
-        ret = super().receiveMessage(msg)
+    def receiveBlock(self, msg):
+        ret = super().receiveBlock(msg)
         if self.statu == self.WAIT_START:
             self._test_signal.emit(ret, MODE_DSP)
         else:
-            self._msg_signal.emit(ret, MODE_DSP)
+            self._blk_signal.emit(ret, MODE_DSP)
+
+    def receiveCompleteMsg(self, com_msg):
+        ret = super().receiveCompleteMsg(com_msg)
+        self._com_signal.emit(ret, MODE_DSP)
 
     def getSign(self, cipher):
         super().getSign(cipher)
@@ -206,6 +269,20 @@ class DSP(Entity):
         super().verifySign(cipher, sign)
         return Crypto.Security.verySign("/home/jiaxv/inoproject/Acars_Security/users/cmu/cmucert.pem" + "\x00", cipher, sign)
 
+    def setCurrentArn(self, arn):
+        self.current_arn = arn
+
+    def getCurrentArn(self):
+        return self.current_arn
+
+    def setCert(self, paras):
+        self.ca.genClientCert(self.work_space, paras,
+                              self.entity_num, self._cert_key)
+
+    def setCAEntity(self, ca):
+        self.ca = ca
+
+
 class CMU(Entity):
     def __init__(self) -> None:
         super().__init__()
@@ -213,15 +290,20 @@ class CMU(Entity):
         self.entity_num = MODE_CMU
         self.arn = None
         self.id = None
-        self.protocol = Protocol.Protocol(self.entity_num, self)
+        self.custom2_statu = C2_WAIT_HANDSHAKE
+        self.protocol = Protocol.CMUProtocol(self.entity_num, self)
+        self.ca = None
 
-    def receiveMessage(self, msg):
-        ret = super().receiveMessage(msg)
+    def receiveBlock(self, msg):
+        ret = super().receiveBlock(msg)
         if self.statu == self.WAIT_START:
-            self._test_signal.emit(ret, MODE_DSP)
+            self._test_signal.emit(ret, MODE_CMU)
         else:
-            self._msg_signal.emit(ret, MODE_CMU)
+            self._blk_signal.emit(ret, MODE_CMU)
 
+    def receiveCompleteMsg(self, com_msg):
+        ret = super().receiveCompleteMsg(com_msg)
+        self._com_signal.emit(ret, MODE_CMU)
 
     def getSign(self, cipher):
         super().getSign(cipher)
@@ -240,3 +322,24 @@ class CMU(Entity):
 
     def getId(self):
         return self.id
+
+    def setCert(self, paras):
+        self.ca.genClientCert(self.work_space, paras,
+                              self.entity_num, self._cert_key)
+
+    def setCAEntity(self, ca):
+        self.ca = ca
+
+
+class CA(Entity):
+    def __init__(self):
+        super().__init__()
+        self.work_space = self.work_space + "ca/"
+        self.entity_num = MODE_CA
+
+    def setCert(self, paras):
+        Crypto.Security.cert_test(
+            self.work_space, paras, self.entity_num, self._cert_key)
+
+    def genClientCert(self, work_space, paras, entity_num, key):
+        Crypto.Security.cert_test(work_space, paras, entity_num, key)

@@ -39,6 +39,7 @@ class message_format(Structure):
 class Message:
     NORMAL = 0
     CUSTOM = 1
+    CUSTOM2 = 2
 
     ETX = "\x03"
     ETB = "\x17"
@@ -53,9 +54,9 @@ class Message:
         self._ARN = ("%7s" % message_tuple[5]).replace(" ", ".")
         self._UDBI = message_tuple[6]
         self._ACK = message_tuple[7]
-        self._serial = message_tuple[8]
-        self._flight = message_tuple[9]
-        self._text = message_tuple[10]
+        self._flight = message_tuple[8]
+        self._text = message_tuple[9]
+        self._serial = message_tuple[10]
         self._crc = message_tuple[11] if message_tuple[11] is not None else "\x00\x00"
         self._suffix = message_tuple[12]
         self._IQdata = None
@@ -97,7 +98,7 @@ class Message:
         return self._sec_level
 
     def getMsgTuple(self):
-        return (self._timestamp, self._up_down, self._sec_level, self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._serial, self._flight, self._text, self._crc, self._suffix)
+        return (self._timestamp, self._up_down, self._sec_level, self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._flight, self._text, self._serial, self._crc, self._suffix)
 
     def String(self):
         return self._text
@@ -142,16 +143,19 @@ class Message:
         self._crc = string_at(mf.crc, 2)
 
 
-class ReceivedMessage(Message):
+class CompleteMessage:
     def __init__(self, message_tuple) -> None:
-        super().__init__(message_tuple)
-        self._origin_text = message_tuple[11]
-        self._sign_text = message_tuple[12]
-        self._sign_valid = message_tuple[13]
-        self._cipher_text = message_tuple[14]
+        self._origin_text = message_tuple[0]
+        self._processed_text = message_tuple[1]
+        self._sign_text = message_tuple[2]
+        self._sign_valid = message_tuple[3]
+        self._cipher_text = message_tuple[4]
 
     def getOriginText(self):
         return self._origin_text
+    
+    def getProcessedText(self):
+        return self._processed_text
 
     def getCipherText(self):
         return self._cipher_text
@@ -167,9 +171,3 @@ class ReceivedMessage(Message):
 
     def getSignLen(self):
         return len(self._sign_text)
-
-    def getMsgTuple(self):
-        tuple = super().getMsgTuple()
-        tuple = (tuple + (self._cipher_text, self._sign_text))
-
-        return tuple

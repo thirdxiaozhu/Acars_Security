@@ -6,6 +6,7 @@ import Message
 import json
 import logging
 import time
+import hashlib
 
 MODE_DSP = 220
 MODE_CMU = 210
@@ -19,6 +20,10 @@ class Protocol:
         self._hackrf_event = None
         self._rtl_event = None
         self.waiting_send_queue = multiprocessing.Queue()
+        self.currentIndex = 1
+        self.msg_send_dict = {}
+        self.msg_receive_dict = {}
+        self.msg_receive_blocks_list = []
         self.msg_checked_dict = {}
         self.transingThread = Util.KThread(target=self.transitting)
         self.transingThread.start()
@@ -42,6 +47,7 @@ class Protocol:
         self._rtl_event.startRecv()
 
     def appendWaitsend(self, sec_level, paras, text, crc):
+        self.msg_send_dict[self.currentIndex] = hashlib.md5(text.encode("latin1"))
         text_slices = Util.cut_list(text, self.enum)
         msgs = self.generateMsgs(paras, text_slices, sec_level, crc) #只有ACK报文的元组才具有crc，依据此判断是否需要确认报文
         for msg in msgs:
@@ -50,45 +56,31 @@ class Protocol:
             else:
                 self.msg_checked_dict[msg.getCRC_ASCII()] = True
             self.waiting_send_queue.put(msg)
-            print(self.msg_checked_dict)
 
 
     def receive(self, msg):
-        dict = json.loads(msg)
-        label = dict.get("label")
-        crc = dict.get("crc")[:2]
-        if label[0] != "\x5F":
-            arn = dict.get("flight") if self.enum == MODE_DSP else dict.get("tail")
-            if self.enum == MODE_DSP:
-                self.appendWaitsend(0, ("2","\x5F\x7F", arn, "D", "3", None, None, ""), "", crc)
-            else:
-                self.appendWaitsend(0, ("2","\x5F\x7F", arn, "3", "A", "M01A", self.entity.getId(), ""), "", crc)
-
-        else:
-            self.msg_checked_dict[crc] = True
-        self.entity.receiveMessage(dict)
-
+        pass
 
     def generateMsgs(self, paras, slices, sec_level, crc):
         msgs = []
         for i in range(len(slices)):
+            #序列号从A开始
+            serial = "M"  + ("%2s" % self.currentIndex).replace(" ", "0") + chr(65 + i)
             suffix = Message.Message.ETB
             if i == len(slices) - 1:
                 suffix = Message.Message.ETX
-            msg = Message.Message((None, self.enum, sec_level) + paras[:-1] + (slices[i], crc, suffix))
+            msg = Message.Message((None, self.enum, sec_level) + paras[:-1] + (slices[i], serial, crc, suffix))
             msg.generateIQ()
             msgs.append(msg)
+
+        self.currentIndex = self.currentIndex + 1
 
         return msgs
     
     def transitting(self):
         parent_is_finsh, son_is_finish = multiprocessing.Pipe()
         while True:
-            if self.waiting_send_queue.empty():
-                time.sleep(0.1)
-                continue
-            msg = self.waiting_send_queue.get_nowait()
-            #msg = self.waiting_send_queue.get(block=True)
+            msg = self.waiting_send_queue.get(block=True)
             self._hackrf_event.putIQs(msg._IQdata)
             transProcess = Trans(self._hackrf_event, son_is_finish, self.parent_hackrf_conn)
             transProcess.start()
@@ -97,6 +89,75 @@ class Protocol:
             transProcess.kill()
             del transProcess
 
+            time.sleep(2)
+
+class DSPProtocol(Protocol):
+    def __init__(self, enum, entity):
+        super().__init__(enum, entity)
+
+    def receive(self, msg):
+        super().receive(msg)
+        dict = json.loads(msg)
+        label = dict.get("label")
+        crc = dict.get("crc")[:2]
+        isEnd = dict.get("end")
+        self.entity.setCurrentArn(dict.get("tail"))
+
+        self.msg_receive_blocks_list.append(dict.get("text"))
+
+        #发送ACK应答
+        if label[0] != "\x5F":
+            arn = dict.get("flight")
+            self.appendWaitsend(0, ("2","\x5F\x7F", arn, "D", "3",  None, ""), "", crc)
+        else:
+            self.msg_checked_dict[crc] = True  #确认对方已经收到己方之前发送的携带该crc的报文
+
+        self.entity.receiveBlock(dict)
+
+        #acarsdec对于具有serial number的下行报文，会等到最后具有EXT的报文达到后，将正文重新组合再返回一个具有完整正文的json
+        if isEnd is True:
+            self.entity.receiveCompleteMsg(dict.get("text"))
+        else:
+            pass
+
+
+
+
+class CMUProtocol(Protocol):
+    def __init__(self, enum, entity):
+        super().__init__(enum, entity)
+
+
+    def receive(self, msg):
+        super().receive(msg)
+        dict = json.loads(msg)
+        label = dict.get("label")
+        crc = dict.get("crc")[:2]
+        isEnd = dict.get("end")
+
+        self.msg_receive_blocks_list.append(dict.get("text"))
+
+        #发送ACK应答
+        if label[0] != "\x5F":
+            arn = dict.get("tail")
+            self.appendWaitsend(0, ("2","\x5F\x7F", arn, "3", "A",  self.entity.getId(), ""), "", crc)
+        else:
+            self.msg_checked_dict[crc] = True
+
+        self.entity.receiveBlock(dict)
+
+        #当该报文为结尾报文ETX时
+        if isEnd is True:
+            complete_msg = ""
+            #非ACK报文组合成一个完整的报文
+            for i in self.msg_receive_blocks_list:
+                complete_msg = None if i is None else (complete_msg + i)
+
+            print(complete_msg)
+
+            self.entity.receiveCompleteMsg(complete_msg)
+            #清空所有block
+            self.msg_receive_blocks_list = []
 
 
 
