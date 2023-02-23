@@ -103,23 +103,25 @@ class DSPProtocol(Protocol):
         isEnd = dict.get("end")
         self.entity.setCurrentArn(dict.get("tail"))
 
+        if crc is not None:
+            crc = crc[:2]
+
         self.msg_receive_blocks_list.append(dict.get("text"))
 
         #发送ACK应答
         if label[0] != "\x5F":
             arn = dict.get("flight")
-            self.appendWaitsend(0, ("2","\x5F\x7F", arn, "D", "3",  None, ""), "", crc)
+            #self.appendWaitsend(0, ("2","\x5F\x7F", arn, "D", "3",  None, ""), "", crc)
+            #acarsdec对于具有serial number的下行报文，会等到最后具有EXT的报文达到后，将正文重新组合再返回一个具有完整正文的json
+            if isEnd is True:
+                print(dict)
+                self.entity.receiveCompleteMsg(dict.get("text"))
+            else:
+                pass
         else:
             self.msg_checked_dict[crc] = True  #确认对方已经收到己方之前发送的携带该crc的报文
 
         self.entity.receiveBlock(dict)
-
-        #acarsdec对于具有serial number的下行报文，会等到最后具有EXT的报文达到后，将正文重新组合再返回一个具有完整正文的json
-        if isEnd is True:
-            self.entity.receiveCompleteMsg(dict.get("text"))
-        else:
-            pass
-
 
 
 
@@ -132,32 +134,36 @@ class CMUProtocol(Protocol):
         super().receive(msg)
         dict = json.loads(msg)
         label = dict.get("label")
-        crc = dict.get("crc")[:2]
+        crc = dict.get("crc")
         isEnd = dict.get("end")
+
+        if crc is not None:
+            crc = crc[:2]
 
         self.msg_receive_blocks_list.append(dict.get("text"))
 
         #发送ACK应答
         if label[0] != "\x5F":
             arn = dict.get("tail")
-            self.appendWaitsend(0, ("2","\x5F\x7F", arn, "3", "A",  self.entity.getId(), ""), "", crc)
+            #self.appendWaitsend(0, ("2","\x5F\x7F", arn, "3", "A",  self.entity.getId(), ""), "", crc)
+
+            #当该报文为结尾报文ETX时
+            if isEnd is True:
+                complete_msg = ""
+                #非ACK报文组合成一个完整的报文
+                for i in self.msg_receive_blocks_list:
+                   complete_msg = "" if i is None else (complete_msg + i)
+
+                print(complete_msg)
+
+                self.entity.receiveCompleteMsg(complete_msg)
+                #清空所有block
+                self.msg_receive_blocks_list = []
         else:
             self.msg_checked_dict[crc] = True
 
         self.entity.receiveBlock(dict)
 
-        #当该报文为结尾报文ETX时
-        if isEnd is True:
-            complete_msg = ""
-            #非ACK报文组合成一个完整的报文
-            for i in self.msg_receive_blocks_list:
-                complete_msg = None if i is None else (complete_msg + i)
-
-            print(complete_msg)
-
-            self.entity.receiveCompleteMsg(complete_msg)
-            #清空所有block
-            self.msg_receive_blocks_list = []
 
 
 

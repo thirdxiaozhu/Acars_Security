@@ -90,8 +90,8 @@ class Receiver:
 def getRtls():
     serials = RtlSdr.get_device_serial_addresses()
     devices = []
-    for i in range(len(serials)):
-        devices.append(str(i))
+    for i in serials:
+        devices.append(i)
     return devices
 
 class RecvProcess(multiprocessing.Process):

@@ -34,7 +34,8 @@ FAIL = 1
 class Interface(QtCore.QObject):
     addBlockSignal = QtCore.pyqtSignal(object, int)
     addCompleteMsgSignal = QtCore.pyqtSignal(object, int)
-    
+    notificationSignal = QtCore.pyqtSignal(str, str)
+   
 
     def __init__(self, mainWindow) -> None:
         super(Interface, self).__init__()
@@ -47,8 +48,8 @@ class Interface(QtCore.QObject):
         self.getDevices()
         self.reInitDeviceCombos(ALL)
 
-        self.dsp.putSignals(self.addBlockSignal, self.addCompleteMsgSignal)
-        self.cmu.putSignals(self.addBlockSignal, self.addCompleteMsgSignal)
+        self.dsp.putSignals(self.addBlockSignal, self.addCompleteMsgSignal, self.notificationSignal)
+        self.cmu.putSignals(self.addBlockSignal, self.addCompleteMsgSignal, self.notificationSignal)
         self.dsp.setCAEntity(self.ca)
         self.cmu.setCAEntity(self.ca)
 
@@ -167,6 +168,7 @@ class Interface(QtCore.QObject):
 
         self.addBlockSignal.connect(self.addBlock)
         self.addCompleteMsgSignal.connect(self.addCompleteMsg)
+        self.notificationSignal.connect(self.showNotification)
         self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
         self.cmu_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.cmu_certs_list))
 
@@ -533,7 +535,12 @@ class Interface(QtCore.QObject):
 
 
     def cus2Handshake(self):
+        self.dsp.custom2_statu = Entity.C2_WAIT_HANDSHAKE
+        self.cmu.custom2_statu = Entity.C2_WAIT_HANDSHAKE
         self.cmu.putMessageParas([("2", "P8", self.cmu.getArn(), "2", "\x15", self.cmu.getId(), "Hello")])
+
+    def showNotification(self, title, str):
+        QMessageBox.critical(None, title, str, QMessageBox.Yes)
 
 
 class TestStable(QtCore.QObject):

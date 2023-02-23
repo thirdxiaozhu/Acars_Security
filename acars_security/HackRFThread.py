@@ -120,21 +120,22 @@ class HackRfEvent:
         self.to_start.terminate()
 
     def run(self):
-        res = self.initiDevice()
-        if res == 0:
-            self.initContext()
-            result = self._hackrf_broadcaster.startTX(self.hackrfTXCB, self._tx_context)
-            if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-                print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
+        #res = self.initiDevice()
+        #if res == 0:
+        #    self.initContext()
+        #    result = self._hackrf_broadcaster.startTX(self.hackrfTXCB, self._tx_context)
+        #    if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
+        #        print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
-            while self._hackrf_broadcaster.isStreaming():
-                time.sleep(1)
+        #    while self._hackrf_broadcaster.isStreaming():
+        #        time.sleep(0.1)
 
-            result = self._hackrf_broadcaster.stopTX()
-            if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-                print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
+        #    result = self._hackrf_broadcaster.stopTX()
+        #    if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
+        #        print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
 
-        self.closeDevice(res)
+        #self.closeDevice(res)
+        pass
 
     def IsStop(self):
         return self._do_stop
@@ -187,6 +188,7 @@ class HackRfEvent:
         else:
             memmove(addr_dest, addr_src, left)
             memset(addr_dest+left, 0, tx_buffer_length-left)
+            time.sleep(1)
             #user_tx_context.contents.buffer_length = 0
             #user_tx_context.contents.last_tx_pos = 0
 

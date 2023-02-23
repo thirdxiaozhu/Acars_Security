@@ -104,7 +104,7 @@
              </sizepolicy>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="SafetySettings">
              <property name="geometry">
@@ -258,8 +258,8 @@
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>305</width>
-                     <height>547</height>
+                     <width>160</width>
+                     <height>93</height>
                     </rect>
                    </property>
                    <attribute name="label">
@@ -362,7 +362,7 @@
               <item>
                <widget class="QToolBox" name="toolBox">
                 <property name="currentIndex">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <widget class="QWidget" name="DspDevices">
                  <property name="geometry">

@@ -8,6 +8,7 @@ MODE_DSP = 220
 MODE_CA = 230
 
 IV_LEN = 16
+KEY_LEN = 16
 SIGN_LEN = 72
 CA_PRIV_PATH = "/home/jiaxv/inoproject/Acars_Security/users/ca/capri.pem"
 CA_PASSWD = "iamca"
@@ -189,21 +190,22 @@ class Security:
         return dll_test.verifyCert(ca_path_b, user_cert, user_len)
     
     def encryptSynKey(cert):
+        random_key = cast(create_string_buffer(KEY_LEN), POINTER(c_ubyte))  
         user_cert = (c_char*len(cert)).from_buffer_copy(bytearray(cert))
         user_len = c_size_t(len(cert))
-        ret = cast(create_string_buffer(1024), POINTER(c_ubyte))  
+        ret = cast(create_string_buffer(1024), POINTER(c_ubyte))
         ret_len = c_size_t(0)
 
-        dll_test.encryptRandomSynKey(user_cert, user_len, ret, byref(ret_len))
+        dll_test.encryptRandomSynKey(random_key, user_cert, user_len, ret, byref(ret_len))
 
-        return string_at(ret, ret_len.value)
+        return ( string_at(random_key, KEY_LEN),string_at(ret, ret_len.value))
     
     def decryptSynKey(cipher):
         pripath = "/home/jiaxv/inoproject/Acars_Security/users/dsp/dsppri.pem" + "\00"
         pri_path_b = (c_char*len(pripath)).from_buffer_copy(bytearray(pripath.encode("latin1")))
         cipher_in = (c_char*len(cipher)).from_buffer_copy(bytearray(cipher))
         cipher_len = c_size_t(len(cipher))
-        plain_out = cast(create_string_buffer(16), POINTER(c_ubyte))
+        plain_out = cast(create_string_buffer(KEY_LEN), POINTER(c_ubyte))
         plain_len = c_size_t(0)
 
         dll_test.decryptRandomSynKey(pri_path_b, cipher_in, cipher_len, plain_out, byref(plain_len))
