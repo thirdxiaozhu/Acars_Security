@@ -40,6 +40,7 @@ class Entity:
         self._hackrf_event = None
         self._rtl_event = None
         self._sym_key = None
+        self._sym_key_c2 = None
         self._iv = None
         self._blk_signal = None
         self._com_signal = None
@@ -126,7 +127,6 @@ class Entity:
     def getDSPCert(self):
         return Crypto.Security.getCert("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem")
 
-
     def compressMsg(self, text):
         for i in text:
             pp = Util.intTo6bit(i)
@@ -141,15 +141,15 @@ class Entity:
 
     def symmetricDecrypt(self, cipher_text):
         return Crypto.Security.symmetricDecrypt(self._sym_key, self._iv, cipher_text)
-    
-    def getSynKey(self, cert):
+
+    def getSymKey(self, cert):
         ret = Crypto.Security.verifyCert(cert)
         if ret == 0:
             self._not_signal.emit("Success", "Verify DSP Certificate Success!")
-            return  Crypto.Security.encryptSynKey(cert)
+            return Crypto.Security.encryptSymKey(cert)
         else:
             self._not_signal.emit("Wrong", "Verify DSP Certificate Fail!")
-            return None
+            return (None, None)
 
     #收到数据块
     def receiveBlock(self, dict):
@@ -167,10 +167,10 @@ class Entity:
 
         try:
             msg = Message.Message((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"),
-                               dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end")))
+                                   dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end")))
         except Exception:
             msg = Message.Message((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"),
-                               dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), None, None, dict.get("end")))
+                                   dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), None, None, dict.get("end")))
 
         return msg
 
@@ -206,19 +206,27 @@ class Entity:
                         [("2", "P8", self.getCurrentArn(), "A", "\x15", None, self.getDSPCert())])
                 elif self.custom2_statu == C2_DSP_CERT_SEND:
                     processed_text = Process.messageDecode(origin_text)
-                    syn_key = Crypto.Security.decryptSynKey(Crypto.Security.getCert("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem"))
-                    print(syn_key)
-                    self.custom2_statu = C2_DONE
+                    sym_key = Crypto.Security.decryptSymKey(processed_text)
+                    if sym_key is not None:
+                        self._sym_key_c2 = sym_key
+                        self.custom2_statu = C2_DONE
+                    else:
+                        self.custom2_statu = C2_WAIT_HANDSHAKE
 
             elif self.entity_num == MODE_CMU:
                 #收到地面站证书
                 if self.custom2_statu == C2_CMU_HELLO_SEND:
                     self.custom2_statu = C2_CMU_CERT_RECEIVED
                     processed_text = Process.messageDecode(origin_text)
-                    (syn_key, enc_syn_key) = self.getSynKey(processed_text)
+                    (sym_key, enc_sym_key) = self.getSymKey(processed_text)
                     #发送公钥加密后的对称密钥
-                    self.putMessageParas(
-                        [("2", "P8", self.getArn(), "2", "\x15", self.getId(), enc_syn_key)])
+                    if sym_key is not None:
+                        self._sym_key_c2 = sym_key
+                        self.putMessageParas(
+                            [("2", "P8", self.getArn(), "2", "\x15", self.getId(), enc_sym_key)])
+                        self.custom2_statu = C2_DONE
+                    else:
+                        self.custom2_statu = C2_WAIT_HANDSHAKE
         else:
             pass
 

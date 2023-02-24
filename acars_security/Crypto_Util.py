@@ -189,18 +189,18 @@ class Security:
 
         return dll_test.verifyCert(ca_path_b, user_cert, user_len)
     
-    def encryptSynKey(cert):
+    def encryptSymKey(cert):
         random_key = cast(create_string_buffer(KEY_LEN), POINTER(c_ubyte))  
         user_cert = (c_char*len(cert)).from_buffer_copy(bytearray(cert))
         user_len = c_size_t(len(cert))
         ret = cast(create_string_buffer(1024), POINTER(c_ubyte))
         ret_len = c_size_t(0)
 
-        dll_test.encryptRandomSynKey(random_key, user_cert, user_len, ret, byref(ret_len))
+        dll_test.encryptRandomSymKey(random_key, user_cert, user_len, ret, byref(ret_len))
 
-        return ( string_at(random_key, KEY_LEN),string_at(ret, ret_len.value))
+        return (string_at(random_key, KEY_LEN), string_at(ret, ret_len.value))
     
-    def decryptSynKey(cipher):
+    def decryptSymKey(cipher):
         pripath = "/home/jiaxv/inoproject/Acars_Security/users/dsp/dsppri.pem" + "\00"
         pri_path_b = (c_char*len(pripath)).from_buffer_copy(bytearray(pripath.encode("latin1")))
         cipher_in = (c_char*len(cipher)).from_buffer_copy(bytearray(cipher))
@@ -208,6 +208,9 @@ class Security:
         plain_out = cast(create_string_buffer(KEY_LEN), POINTER(c_ubyte))
         plain_len = c_size_t(0)
 
-        dll_test.decryptRandomSynKey(pri_path_b, cipher_in, cipher_len, plain_out, byref(plain_len))
+        is_success = dll_test.decryptRandomSymKey(pri_path_b, cipher_in, cipher_len, plain_out, byref(plain_len))
 
-        return string_at(plain_out, plain_len.value)
+        if is_success == 0:
+            return string_at(plain_out, plain_len.value)
+        else:
+            return None

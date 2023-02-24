@@ -17,17 +17,16 @@ logging.basicConfig()
 MODE_DSP = 220
 MODE_CMU = 210
 
-class hackrf_tx_context(Structure):
-    _fields_ = [("buffer", POINTER(c_ubyte)),
-                ("last_tx_pos", c_int),
-                ("buffer_length", c_int),
-                ("to_repeat", c_int),
-                ("have_repeated", c_int),
-                ("mode", c_int),
-                ("sleep_time", c_int)]
+dll_test = CDLL("bin/libacarstrans.so")
 
-    def __init__(self):
-        self.buffer = cast(create_string_buffer(2304000), POINTER(c_ubyte))  #需要首先分配内存
+class Hackrf_devs(Structure):
+    _fields_ = [
+        ("is_repeat", c_bool),
+        ("serial_number", POINTER(c_ubyte)),
+        ("path", POINTER(c_ubyte)),
+        ("vga_p", c_int),
+        ("freq_p", c_int64),
+        ("data", POINTER(c_ubyte))]
 
 
 def getInfo():
@@ -49,67 +48,15 @@ class HackRfEvent:
     __logger = logging.getLogger("HackRFEvent")
     __logger.setLevel(logging.DEBUG)
 
-    def __init__(self, serial, freq, son_conn, mode):
+    def __init__(self, serial, freq, son_conn):
         super().__init__()
         self.serial = serial
         self.freq = float(freq)
         self.son_conn = son_conn
-        self.mode = mode
         self.msg_iq = None
 
         self._do_stop = False
         self._do_close = False
-
-
-    def initiDevice(self):
-
-        # Initialize pyHackRF library
-        # Initialize HackRF instance (could pass board serial or index if specific board is needed)
-        result = HackRF.initialize()
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-
-        self._hackrf_broadcaster = HackRF()
-
-        result = self._hackrf_broadcaster.open(self.serial)
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-            return -1
-
-        result = self._hackrf_broadcaster.setSampleRate(1152000)
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-            return -1
-
-
-        result = self._hackrf_broadcaster.setFrequency(int(self.freq * 1e6))
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-            return -1
-
-        # week gain (used for wire feed + attenuators)
-        result = self._hackrf_broadcaster.setTXVGAGain(25)
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-            return -1
-
-        result = self._hackrf_broadcaster.setAmplifierMode(
-            LibHackRfHwMode.HW_MODE_OFF)
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-            return -1
-
-
-        return 0
-
-    def initContext(self):
-        self._tx_context = hackrf_tx_context()
-        #if length != 0:
-        self._tx_context.last_tx_pos = 0
-        self._tx_context.buffer_length = len(self.msg_iq)
-        self._tx_context.mode = self.mode
-        self._tx_context.buffer = (
-                c_ubyte*self._tx_context.buffer_length).from_buffer_copy(bytearray(self.msg_iq))
 
 
     def startWorking(self):
@@ -117,25 +64,21 @@ class HackRfEvent:
         self.to_start.start()
     
     def stopWorking(self):
-        self.to_start.terminate()
+        self.to_start.kill()
 
     def run(self):
-        #res = self.initiDevice()
-        #if res == 0:
-        #    self.initContext()
-        #    result = self._hackrf_broadcaster.startTX(self.hackrfTXCB, self._tx_context)
-        #    if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-        #        print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
+        hd = Hackrf_devs()
+        hd.is_repeat = c_bool(False)
+        hd.serial_number = (c_ubyte*len(self.serial)).from_buffer_copy(bytearray(self.serial.encode("latin1")))
+        hd.vga_p = c_int(20)
+        hd.freq_p = c_int64(int(self.freq * 1e6))
+        hd.data = (c_ubyte * (len(self.msg_iq))).from_buffer_copy(bytearray(self.msg_iq))
 
-        #    while self._hackrf_broadcaster.isStreaming():
-        #        time.sleep(0.1)
+        dll_test.Transmit.argtypes = [c_void_p]
+        dll_test.Transmit(byref(hd))
+        time.sleep(0.5)
 
-        #    result = self._hackrf_broadcaster.stopTX()
-        #    if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-        #        print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-
-        #self.closeDevice(res)
-        pass
+        self.son_conn.send(1)
 
     def IsStop(self):
         return self._do_stop
@@ -143,56 +86,13 @@ class HackRfEvent:
     def IsDeviceCLose(self):
         return self._do_close
 
-    # do hackRF lib and instance cleanup at object destruction time
-    def closeDevice(self, res):
-        result = self._hackrf_broadcaster.close()
-        self.__logger.debug("close  %d" % result)
-        if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-            print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-
-        self._do_stop = True
-
-        #result = HackRF.deinitialize()
-        #    
-        #self.__logger.debug("dein  %d" % result)
-        #if (result != LibHackRfReturnCode.HACKRF_SUCCESS):
-        #    print("Error :", result, ",", HackRF.getHackRfErrorCodeName(result))
-
-        self.son_conn.send(res)
-
+ 
     def forceStop(self):
         self.closeDevice(0)
 
     def __del__(self):
         self.__logger.debug("have del")
 
-    def isStopThreadEvent(self):
-        pass
-
-    def hackrfTXCB(self, hackrf_transfer):
-        user_tx_context = cast(hackrf_transfer.contents.tx_ctx,
-                               POINTER(hackrf_tx_context))
-
-        tx_buffer_length = hackrf_transfer.contents.valid_length
-
-        left = user_tx_context.contents.buffer_length - \
-            user_tx_context.contents.last_tx_pos
-        addr_dest = addressof(hackrf_transfer.contents.buffer.contents)
-        addr_src = addressof(user_tx_context.contents.buffer.contents) + \
-            user_tx_context.contents.last_tx_pos
-
-        if left > tx_buffer_length:
-            memmove(addr_dest, addr_src, tx_buffer_length)
-            user_tx_context.contents.last_tx_pos += tx_buffer_length
-            return 0
-        else:
-            memmove(addr_dest, addr_src, left)
-            memset(addr_dest+left, 0, tx_buffer_length-left)
-            time.sleep(1)
-            #user_tx_context.contents.buffer_length = 0
-            #user_tx_context.contents.last_tx_pos = 0
-
-            return -1
 
     def putIQs(self, iq_data):
         self.msg_iq = iq_data

@@ -30,7 +30,7 @@ class Protocol:
 
     def setSendingDevice(self, hackrf_serial, trans_freq):
         self.parent_hackrf_conn, self.son_hackrf_conn = multiprocessing.Pipe()
-        self._hackrf_event = HackRfEvent(hackrf_serial, trans_freq, self.son_hackrf_conn, self.enum)
+        self._hackrf_event = HackRfEvent(hackrf_serial, trans_freq, self.son_hackrf_conn)
 
     def setReceivingDevice(self, rtl_serial, trans_freq, addr):
         self._rtl_event = Receiver(rtl_serial, trans_freq, addr, self.enum, self)
