@@ -129,7 +129,6 @@ class Security:
         iv = string_at(ce.iv, IV_LEN)
 
         cipher_str = cipher.decode("latin1")
-        print(plain_str)
         return cipher_str
     
     def symmetricDecrypt(key, iv, cipher_str):

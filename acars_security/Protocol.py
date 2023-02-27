@@ -24,6 +24,7 @@ class Protocol:
         self.msg_send_dict = {}
         self.msg_receive_dict = {}
         self.msg_receive_blocks_list = []
+        self.msg_receive_blocks_hash_list = []
         self.msg_checked_dict = {}
         self.transingThread = Util.KThread(target=self.transitting)
         self.transingThread.start()
@@ -57,19 +58,30 @@ class Protocol:
                 self.msg_checked_dict[msg.getCRC_ASCII()] = True
             self.waiting_send_queue.put(msg)
 
+    def clearItems(self):
+        self.msg_receive_blocks_hash_list = []
+        self.msg_receive_blocks_list = []
+        self.msg_checked_dict = {}
+
 
     def receive(self, msg):
-        pass
+        dict = json.loads(msg)
+        dict["statu"] = 1000
+        dict["errormsg"] = ""
+        return dict
 
     def generateMsgs(self, paras, slices, sec_level, crc):
         msgs = []
         for i in range(len(slices)):
-            #序列号从A开始
-            serial = "M"  + ("%2s" % self.currentIndex).replace(" ", "0") + chr(65 + i)
+            serial = paras[-1]
+            if serial == "":
+                #序列号从A开始
+                serial = "M"  + ("%2s" % self.currentIndex).replace(" ", "0") + chr(65 + i)
+
             suffix = Message.Message.ETB
             if i == len(slices) - 1:
                 suffix = Message.Message.ETX
-            msg = Message.Message((None, self.enum, sec_level) + paras[:-1] + (slices[i], serial, crc, suffix))
+            msg = Message.Message((None, self.enum, sec_level) + paras[:-2] + (slices[i], serial, crc, suffix))
             msg.generateIQ()
             msgs.append(msg)
 
@@ -89,23 +101,31 @@ class Protocol:
             transProcess.kill()
             del transProcess
 
-            time.sleep(2)
+            time.sleep(1)
 
 class DSPProtocol(Protocol):
     def __init__(self, enum, entity):
         super().__init__(enum, entity)
 
     def receive(self, msg):
-        super().receive(msg)
-        dict = json.loads(msg)
+        dict = super().receive(msg)
         label = dict.get("label")
-        crc = dict.get("crc")[:2]
+        crc = dict.get("crc")
         isEnd = dict.get("end")
+        hash = ""
         self.entity.setCurrentArn(dict.get("tail"))
 
         if crc is not None:
             crc = crc[:2]
 
+        if dict.get("text") is not None:
+            hash = hashlib.md5(dict.get("text").encode("latin1")).hexdigest()
+        if not self.msg_receive_blocks_hash_list.__contains__(hash):
+            self.msg_receive_blocks_hash_list.append(hash)
+        else:
+            dict = {}
+            dict["statu"] = 1001
+            dict["errormsg"] = "Replay Attack!"
         self.msg_receive_blocks_list.append(dict.get("text"))
 
         #发送ACK应答
@@ -114,8 +134,7 @@ class DSPProtocol(Protocol):
             #self.appendWaitsend(0, ("2","\x5F\x7F", arn, "D", "3",  None, ""), "", crc)
             #acarsdec对于具有serial number的下行报文，会等到最后具有EXT的报文达到后，将正文重新组合再返回一个具有完整正文的json
             if isEnd is True:
-                print(dict)
-                self.entity.receiveCompleteMsg(dict.get("text"))
+                self.entity.receiveCompleteMsg(dict)
             else:
                 pass
         else:
@@ -131,15 +150,23 @@ class CMUProtocol(Protocol):
 
 
     def receive(self, msg):
-        super().receive(msg)
-        dict = json.loads(msg)
+        dict = super().receive(msg)
         label = dict.get("label")
         crc = dict.get("crc")
         isEnd = dict.get("end")
+        hash = ""
 
         if crc is not None:
             crc = crc[:2]
 
+        if dict.get("text") is not None:
+            hash = hashlib.md5(dict.get("text").encode("latin1")).hexdigest()
+        if not self.msg_receive_blocks_hash_list.__contains__(hash):
+            self.msg_receive_blocks_hash_list.append(hash)
+        else:
+            dict = {}
+            dict["statu"] = 1001
+            dict["errormsg"] = "Replay Attack!"
         self.msg_receive_blocks_list.append(dict.get("text"))
 
         #发送ACK应答
@@ -154,9 +181,8 @@ class CMUProtocol(Protocol):
                 for i in self.msg_receive_blocks_list:
                    complete_msg = "" if i is None else (complete_msg + i)
 
-                print(complete_msg)
-
-                self.entity.receiveCompleteMsg(complete_msg)
+                dict["text"] = complete_msg
+                self.entity.receiveCompleteMsg(dict)
                 #清空所有block
                 self.msg_receive_blocks_list = []
         else:

@@ -121,13 +121,6 @@ def messageDecode(text):
     return "".join(charas).encode("latin1")
 
 
-def encode_test(text):
-    ts = payloadEncode(text)
-    print(ts, len(ts))
-    re = payloadDecode(ts)
-    print(re, len(re))
-
-
 if __name__ == "__main__":
     pass
     #encode_test()

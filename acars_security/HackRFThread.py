@@ -10,9 +10,6 @@ import logging
 
 logging.basicConfig()
 
-"""
-尚无法使用多进程队列动态管理消息，未找出原因
-"""
 
 MODE_DSP = 220
 MODE_CMU = 210

@@ -1,8 +1,5 @@
 from ctypes import *
 
-import multiprocessing
-from select import select
-
 
 MODE_DSP = 220
 MODE_CMU = 210
@@ -53,7 +50,7 @@ class Message:
         self._label = message_tuple[4]
         self._ARN = ("%7s" % message_tuple[5]).replace(" ", ".")
         self._UDBI = message_tuple[6]
-        self._ACK = message_tuple[7]
+        self._ACK = message_tuple[7] if message_tuple[7] != "" else "\x15"
         self._flight = message_tuple[8]
         self._text = message_tuple[9]
         self._serial = message_tuple[10]
@@ -98,7 +95,8 @@ class Message:
         return self._sec_level
 
     def getMsgTuple(self):
-        return (self._timestamp, self._up_down, self._sec_level, self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._flight, self._text, self._serial, self._crc, self._suffix)
+        orient = "D" if self._up_down == 210 else "U"
+        return (self._timestamp, orient, str(self._sec_level), self._mode, self._label, self._ARN, self._UDBI, self._ACK, self._flight, self._text, self._serial, self._crc, self._suffix)
 
     def String(self):
         return self._text
@@ -143,13 +141,14 @@ class Message:
         self._crc = string_at(mf.crc, 2)
 
 
-class CompleteMessage:
+class CompleteMessage(Message):
     def __init__(self, message_tuple) -> None:
-        self._origin_text = message_tuple[0]
-        self._processed_text = message_tuple[1]
-        self._sign_text = message_tuple[2]
-        self._sign_valid = message_tuple[3]
-        self._cipher_text = message_tuple[4]
+        super().__init__(message_tuple)
+        self._origin_text = message_tuple[13]
+        self._processed_text = message_tuple[14]
+        self._sign_text = message_tuple[15]
+        self._sign_valid = message_tuple[16]
+        self._cipher_text = message_tuple[17]
 
     def getOriginText(self):
         return self._origin_text

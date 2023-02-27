@@ -1,10 +1,6 @@
-from HackRFThread import HackRfEvent
-import multiprocessing
 import re
-import json
 from datetime import datetime
 
-from Receiver import Receiver
 import Util
 import Crypto_Util as Crypto
 import Message
@@ -46,6 +42,7 @@ class Entity:
         self._com_signal = None
         self._test_signal = None
         self._not_signal = None
+        self._c2_done_veri_signal = None 
         self._sec_level = 0
         self.entity_num = None
         self._cert_key = None
@@ -90,10 +87,11 @@ class Entity:
     def genEntityNum(self):
         return self.entity_num
 
-    def putSignals(self, blk_signal, com_signal, notification_signal):
+    def putSignals(self, blk_signal, com_signal, notification_signal, c2_done_verify_signal):
         self._blk_signal = blk_signal
         self._com_signal = com_signal
         self._not_signal = notification_signal
+        self._c2_done_veri_signal = c2_done_verify_signal
 
     def putTestingSignal(self, signal):
         self._test_signal = signal
@@ -127,11 +125,6 @@ class Entity:
     def getDSPCert(self):
         return Crypto.Security.getCert("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem")
 
-    def compressMsg(self, text):
-        for i in text:
-            pp = Util.intTo6bit(i)
-            bin = Util.intToBin(pp)
-
     def setSymmetricKeyandIV(self, key, iv):
         self._sym_key = key
         self._iv = iv
@@ -150,33 +143,63 @@ class Entity:
         else:
             self._not_signal.emit("Wrong", "Verify DSP Certificate Fail!")
             return (None, None)
+        
+    def clearItems(self):
+        self.protocol.clearItems()
 
     #收到数据块
-    def receiveBlock(self, dict):
-        timestamp = dict.get("timestamp")
-        timestamp = datetime.fromtimestamp(
-            timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
-        ack = "\x15" if dict.get("ack") == False else dict.get("ack")
-        try:
-            orient = MODE_DSP if re.compile(
-                r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
-        except:
-            orient = MODE_ELSE
+    #def receiveBlock(self, dict):
+    #    if dict.get("statu") != 1000:
+    #        self._not_signal.emit("Wrong", dict.get("errormsg"))
+    #        return None
+    #    try:
+    #        timestamp = dict.get("timestamp")
+    #        timestamp = datetime.fromtimestamp(
+    #            timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
+    #        ack = "" if dict.get("ack") == False else dict.get("ack")
+    #        try:
+    #            orient = MODE_DSP if re.compile(
+    #                r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
+    #        except:
+    #            orient = MODE_ELSE
 
-        up_down = MODE_DSP if self.entity_num == MODE_CMU else MODE_CMU
+    #        msg = Message.Message((timestamp, orient, self._sec_level, dict.get("mode"), dict.get("label"), dict.get("tail"),
+    #                               dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end")))
+    #    except Exception:
+    #        msg = None
 
+    #    return msg
+    
+    def interpreteBlock(self, dict):
+        if dict.get("statu") != 1000:
+            self._not_signal.emit("Wrong", dict.get("errormsg"))
+            return None
         try:
-            msg = Message.Message((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"),
-                                   dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end")))
+            timestamp = dict.get("timestamp")
+            timestamp = datetime.fromtimestamp(
+                timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
+            ack = "" if dict.get("ack") == False else dict.get("ack")
+            try:
+                orient = MODE_DSP if re.compile(
+                    r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
+            except:
+                orient = MODE_ELSE
+
+            msg_tuple = (timestamp, orient, self._sec_level, dict.get("mode"), dict.get("label"), dict.get("tail"),
+                                   dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end"))
+
         except Exception:
-            msg = Message.Message((timestamp, orient, up_down, dict.get("mode"), dict.get("label"), dict.get("tail"),
-                                   dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), None, None, dict.get("end")))
+            msg_tuple = None
 
-        return msg
+        return msg_tuple
 
     #处理由数个数据块组合成的完整数据报
-    def receiveCompleteMsg(self, com_msg):
-        origin_text = com_msg
+    def receiveCompleteMsg(self, dict):
+        msg_tuple = self.interpreteBlock(dict)
+        if msg_tuple is None:
+            return None
+
+        origin_text = dict.get("text")
 
         processed_text = ""
         sign_text = ""
@@ -203,15 +226,19 @@ class Entity:
                     self.custom2_statu = C2_DSP_HELLO_RECEIVED
                     processed_text = origin_text
                     self.putMessageParas(
-                        [("2", "P8", self.getCurrentArn(), "A", "\x15", None, self.getDSPCert())])
+                        [("2", "P8", self.getCurrentArn(), "A", "", "", self.getDSPCert(), "")])
                 elif self.custom2_statu == C2_DSP_CERT_SEND:
                     processed_text = Process.messageDecode(origin_text)
                     sym_key = Crypto.Security.decryptSymKey(processed_text)
                     if sym_key is not None:
-                        self._sym_key_c2 = sym_key
+                        self._sym_key = sym_key.decode("latin1")
                         self.custom2_statu = C2_DONE
+                        self._c2_done_veri_signal.emit()
                     else:
                         self.custom2_statu = C2_WAIT_HANDSHAKE
+                elif self.custom2_statu == C2_DONE:
+                    to_text = Process.messageDecode(origin_text)
+                    processed_text = self.symmetricDecrypt(to_text)
 
             elif self.entity_num == MODE_CMU:
                 #收到地面站证书
@@ -221,28 +248,40 @@ class Entity:
                     (sym_key, enc_sym_key) = self.getSymKey(processed_text)
                     #发送公钥加密后的对称密钥
                     if sym_key is not None:
-                        self._sym_key_c2 = sym_key
+                        self._sym_key = sym_key.decode("latin1")
                         self.putMessageParas(
-                            [("2", "P8", self.getArn(), "2", "\x15", self.getId(), enc_sym_key)])
+                            [("2", "P8", self.getArn(), "2", "", self.getId(), enc_sym_key, "")])
                         self.custom2_statu = C2_DONE
+                        self._c2_done_veri_signal.emit()
                     else:
                         self.custom2_statu = C2_WAIT_HANDSHAKE
-        else:
-            pass
 
-        msg = Message.CompleteMessage(
+                elif self.custom2_statu == C2_DONE:
+                    try:
+                        to_text = Process.messageDecode(origin_text)
+                        processed_text = self.symmetricDecrypt(to_text)
+                    except:
+                        processed_text = origin_text
+        else:
+            processed_text = origin_text
+
+        msg = Message.CompleteMessage(msg_tuple +
             (origin_text, processed_text, sign_text, sign_valide, cipher_text))
 
         return msg
+    
+    def putMessageParas(self, paras_list):
+        self.putMessageParasExec(paras_list, False)
 
     #根据安全模式进行预处理
-    def putMessageParas(self, paras_list):
+    def putMessageParasExec(self, paras_list, isReplay):
+        print(paras_list)
         for paras in paras_list:
             text = paras[6]
 
             processed_text = ""
-            final_text = None
-            if self._sec_level == Message.Message.NORMAL:
+            final_text = ""
+            if self._sec_level == Message.Message.NORMAL or isReplay is True:
                 final_text = text
             elif self._sec_level == Message.Message.CUSTOM:
                 cipher_text = self.symmetricEncrypt(text)
@@ -254,12 +293,15 @@ class Entity:
                 if self.custom2_statu == C2_WAIT_HANDSHAKE:  # 针对CMU
                     self.custom2_statu = C2_CMU_HELLO_SEND
                     final_text = text
-                if self.custom2_statu == C2_DSP_HELLO_RECEIVED:  # 针对收到“hello”的DSP
+                elif self.custom2_statu == C2_DSP_HELLO_RECEIVED:  # 针对收到“hello”的DSP
                     self.custom2_statu = C2_DSP_CERT_SEND
                     final_text = Process.messageEncode(text)
-                if self.custom2_statu == C2_CMU_CERT_RECEIVED:
+                elif self.custom2_statu == C2_CMU_CERT_RECEIVED:
                     self.custom2_statu = C2_CMU_KEY_SEND
                     final_text = Process.messageEncode(text)
+                elif self.custom2_statu == C2_DONE:
+                    cipher_text = self.symmetricEncrypt(text)
+                    final_text = Process.messageEncode(cipher_text.encode("latin1"))
 
             self.protocol.appendWaitsend(
                 self._sec_level, paras, final_text, None)
@@ -276,16 +318,20 @@ class DSP(Entity):
         self.protocol = Protocol.DSPProtocol(self.entity_num, self)
         self.ca = None
 
-    def receiveBlock(self, msg):
-        ret = super().receiveBlock(msg)
+    def receiveBlock(self, dict):
+        msg_tuple = self.interpreteBlock(dict)
+        if msg_tuple is None:
+            return
+        msg = Message.Message(msg_tuple)
         if self.statu == self.WAIT_START:
-            self._test_signal.emit(ret, MODE_DSP)
+            self._test_signal.emit(msg, MODE_DSP)
         else:
-            self._blk_signal.emit(ret, MODE_DSP)
+            self._blk_signal.emit(msg, MODE_DSP)
 
     def receiveCompleteMsg(self, com_msg):
         ret = super().receiveCompleteMsg(com_msg)
-        self._com_signal.emit(ret, MODE_DSP)
+        if ret is not None:
+            self._com_signal.emit(ret, MODE_DSP)
 
     def getSign(self, cipher):
         super().getSign(cipher)
@@ -320,16 +366,20 @@ class CMU(Entity):
         self.protocol = Protocol.CMUProtocol(self.entity_num, self)
         self.ca = None
 
-    def receiveBlock(self, msg):
-        ret = super().receiveBlock(msg)
+    def receiveBlock(self, dict):
+        msg_tuple = self.interpreteBlock(dict)
+        if msg_tuple is None:
+            return
+        msg = Message.Message(msg_tuple)
         if self.statu == self.WAIT_START:
-            self._test_signal.emit(ret, MODE_CMU)
+            self._test_signal.emit(msg, MODE_CMU)
         else:
-            self._blk_signal.emit(ret, MODE_CMU)
+            self._blk_signal.emit(msg, MODE_CMU)
 
     def receiveCompleteMsg(self, com_msg):
         ret = super().receiveCompleteMsg(com_msg)
-        self._com_signal.emit(ret, MODE_CMU)
+        if ret is not None:
+            self._com_signal.emit(ret, MODE_CMU)
 
     def getSign(self, cipher):
         super().getSign(cipher)

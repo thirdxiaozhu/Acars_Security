@@ -563,8 +563,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>305</width>
-                   <height>547</height>
+                   <width>185</width>
+                   <height>102</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1011,7 +1011,7 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -1064,7 +1064,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_3" stretch="1,1,1,3,1,0,10">
+                 <layout class="QVBoxLayout" name="verticalLayout_3" stretch="1,1,1,3,1,10">
                   <property name="leftMargin">
                    <number>10</number>
                   </property>
@@ -1188,19 +1188,12 @@ p, li { white-space: pre-wrap; }
                    </widget>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="dsp_attack_btn">
-                    <property name="text">
-                     <string>Stimulated Attack</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QListWidget" name="dsp_msg_list"/>
                   </item>
                  </layout>
                 </item>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,1,0,3,1,0,10">
+                 <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,1,0,3,1,10">
                   <property name="leftMargin">
                    <number>10</number>
                   </property>
@@ -1301,13 +1294,6 @@ p, li { white-space: pre-wrap; }
                    </widget>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="cmu_attack_btn">
-                    <property name="text">
-                     <string>Stimulated Attack</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QListWidget" name="cmu_msg_list"/>
                   </item>
                  </layout>
@@ -1326,7 +1312,7 @@ p, li { white-space: pre-wrap; }
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_5" stretch="1,15">
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_18" stretch="0,1,5">
+               <layout class="QHBoxLayout" name="horizontalLayout_18" stretch="0,1,5,0">
                 <item>
                  <spacer name="horizontalSpacer_15">
                   <property name="orientation">
@@ -1366,6 +1352,13 @@ p, li { white-space: pre-wrap; }
                    </size>
                   </property>
                  </spacer>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="clear_all_table_item_btn">
+                  <property name="text">
+                   <string>Clear All</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>

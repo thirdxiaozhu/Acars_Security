@@ -32,9 +32,11 @@ FAIL = 1
 
 
 class Interface(QtCore.QObject):
-    addBlockSignal = QtCore.pyqtSignal(object, int)
-    addCompleteMsgSignal = QtCore.pyqtSignal(object, int)
-    notificationSignal = QtCore.pyqtSignal(str, str)
+    add_block_signal = QtCore.pyqtSignal(object, int)
+    add_complete_msg_signal = QtCore.pyqtSignal(object, int)
+    notification_signal = QtCore.pyqtSignal(str, str)
+    c2_done_verify_signal = QtCore.pyqtSignal()
+    
    
 
     def __init__(self, mainWindow) -> None:
@@ -48,8 +50,8 @@ class Interface(QtCore.QObject):
         self.getDevices()
         self.reInitDeviceCombos(ALL)
 
-        self.dsp.putSignals(self.addBlockSignal, self.addCompleteMsgSignal, self.notificationSignal)
-        self.cmu.putSignals(self.addBlockSignal, self.addCompleteMsgSignal, self.notificationSignal)
+        self.dsp.putSignals(self.add_block_signal, self.add_complete_msg_signal, self.notification_signal, self.c2_done_verify_signal)
+        self.cmu.putSignals(self.add_block_signal, self.add_complete_msg_signal, self.notification_signal, self.c2_done_verify_signal)
         self.dsp.setCAEntity(self.ca)
         self.cmu.setCAEntity(self.ca)
 
@@ -120,13 +122,12 @@ class Interface(QtCore.QObject):
         self.security_mode_combo = self.mainWindow.findChild(QComboBox, "security_mode_combo")
 
         self.msg_table = self.mainWindow.findChild(QTableWidget, "msg_table")
+        self.clear_all_table_item_btn = self.mainWindow.findChild(QPushButton, "clear_all_table_item_btn")
 
         self.confirm_symkey_btn = self.mainWindow.findChild(QPushButton, "confirm_symkey_btn")
         self.dsp_certs_list = self.mainWindow.findChild(QListWidget, "dsp_certs_list")
         self.cmu_certs_list = self.mainWindow.findChild(QListWidget, "cmu_certs_list")
 
-        self.dsp_attack_btn = self.mainWindow.findChild(QPushButton, "dsp_attack_btn")
-        self.cmu_attack_btn = self.mainWindow.findChild(QPushButton, "cmu_attack_btn")
 
         self.cmu_confirm_btn = self.mainWindow.findChild(QPushButton, "cmu_confirm_btn")
 
@@ -139,6 +140,7 @@ class Interface(QtCore.QObject):
 
         self.initMsgTable()
         self.initCertList()
+        self.initMsgList()
 
 
 
@@ -166,9 +168,10 @@ class Interface(QtCore.QObject):
         self.dsp_test_stable_btn.clicked.connect(lambda: self.testStable(Entity.MODE_DSP))
         self.cmu_test_stable_btn.clicked.connect(lambda: self.testStable(Entity.MODE_CMU))
 
-        self.addBlockSignal.connect(self.addBlock)
-        self.addCompleteMsgSignal.connect(self.addCompleteMsg)
-        self.notificationSignal.connect(self.showNotification)
+        self.add_block_signal.connect(self.addBlock)
+        self.add_complete_msg_signal.connect(self.addCompleteMsg)
+        self.notification_signal.connect(self.showNotification)
+        self.c2_done_verify_signal.connect(self.c2DoneVerify)
         self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
         self.cmu_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.cmu_certs_list))
 
@@ -178,15 +181,15 @@ class Interface(QtCore.QObject):
         self.cmu_msg_list.itemDoubleClicked.connect(
             lambda: self.showMsgDetail(self.cmu_msg_list))
 
-        self.dsp_attack_btn.clicked.connect(lambda:self.stimulateAttack(self.dsp_msg_list))
-        self.cmu_attack_btn.clicked.connect(lambda:self.stimulateAttack(self.cmu_msg_list))
-
         self.cmu_confirm_btn.clicked.connect(lambda:self.confirmAircraftInfos())
 
         self.cus_handshake_btn.clicked.connect(lambda: self.cus2Handshake())
 
+        self.clear_all_table_item_btn.clicked.connect(lambda: self.clearAllItems())
+
         self.action_save.triggered.connect(lambda:self.save())
         self.action_load.triggered.connect(lambda:self.load())
+
 
     #保存配置文件
     def save(self):
@@ -294,21 +297,6 @@ class Interface(QtCore.QObject):
     def addBlock(self, msg, mode):
         self.addMsgTableRow(msg.getMsgTuple())
 
-        #item = Ui.SubUnit.MessageListItem(msg)
-        #item.setSizeHint(QSize(200, 50))  
-        #widget = item.getItemWidget()  
-
-
-        #if mode == Entity.MODE_DSP:
-        #    self.dsp_msg_list.addItem(item)  # 添加item
-        #    self.dsp_msg_list.setItemWidget(
-        #        item, widget) 
-        #elif mode == Entity.MODE_CMU:
-        #    self.cmu_msg_list.addItem(item) 
-        #    self.cmu_msg_list.setItemWidget(
-        #        item, widget)  
-        #else:
-        #    pass
 
     def addCompleteMsg(self, msg, mode):
         item = Ui.SubUnit.MessageListItem(msg)
@@ -370,8 +358,8 @@ class Interface(QtCore.QObject):
             if ackInput != "":
                 QMessageBox.critical(None, "Error", "Illegal Ack character!", QMessageBox.Yes)
                 return FAIL
-            else:
-                ackInput = "%c" % (0x15)
+            #else:
+            #    ackInput = "%c" % (0x15)
 
         if self.getSecurityMode() == Message.Message.NORMAL:
             if len(labelInput) > 2:
@@ -390,7 +378,7 @@ class Interface(QtCore.QObject):
                     dubiInput = 0x15
             formaltext = text
 
-            return (modeInput, labelInput, arnInput, dubiInput, ackInput, None,formaltext)
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, None, formaltext, None)
 
         else:
             if not dbi_pattern.match(dubiInput) or len(dubiInput) > 1:
@@ -404,7 +392,7 @@ class Interface(QtCore.QObject):
             FlightID = idInput
             formaltext = text
 
-            return (modeInput, labelInput, arnInput, dubiInput, ackInput, FlightID, formaltext)
+            return (modeInput, labelInput, arnInput, dubiInput, ackInput, FlightID, formaltext, "")
 
     def getCert(self, mode):
         dialog = QDialog()
@@ -431,14 +419,26 @@ class Interface(QtCore.QObject):
         elif index == 2:
             return Message.Message.CUSTOM2
 
+    def initMsgList(self):
+        self.dsp_msg_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.dsp_msg_list.customContextMenuRequested.connect(
+            self.dspListRightMenu)
+        self.cmu_msg_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.cmu_msg_list.customContextMenuRequested.connect(
+            self.cmuListRightMenu)
+
     def initMsgTable(self):
         self.msg_table.setColumnCount(11)
         self.msg_table.setAlternatingRowColors(True)
         self.msg_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.msg_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.msg_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "Number", "FlightID", "Text", "Serial"])
+        self.msg_table.setHorizontalHeaderLabels(["Time", "Orient", "Security Level", "Mode", "Label", "Arn", "UBI/DBI", "ACK", "FlightID", "Text", "Serial"])
         self.msg_table.doubleClicked.connect(self.double_click_table_view_item)
+
+        self.msg_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.msg_table.customContextMenuRequested.connect(
+            self.msgTableRightMenu)
 
     def addMsgTableRow(self, paras):
         rows_c = self.msg_table.rowCount()
@@ -514,8 +514,21 @@ class Interface(QtCore.QObject):
         dialog.show()
         dialog.exec_()
 
-    def stimulateAttack(self, list):
-        items = list.selectedItems()
+    def replayBlockAttack(self):
+        paras = ()
+        for i in self.msg_table.selectedItems():
+            paras = (paras + (i.text(), ))
+        paras = paras[3:]
+
+        if re.compile(
+                r"[A-Za-z]").match(paras[3]) :
+            self.dsp.putMessageParasExec([paras], True)
+        else:
+            self.cmu.putMessageParasExec([paras], True)
+
+    def simulateAttack(self, listwidget):
+        items = listwidget.selectedItems()
+
         if len(items) > 0:
             item = items[0]
             dialog = QDialog()
@@ -537,10 +550,73 @@ class Interface(QtCore.QObject):
     def cus2Handshake(self):
         self.dsp.custom2_statu = Entity.C2_WAIT_HANDSHAKE
         self.cmu.custom2_statu = Entity.C2_WAIT_HANDSHAKE
-        self.cmu.putMessageParas([("2", "P8", self.cmu.getArn(), "2", "\x15", self.cmu.getId(), "Hello")])
+        self.cmu.putMessageParas([("2", "P8", self.cmu.getArn(), "2", "", self.cmu.getId(), "Hello", "")])
 
     def showNotification(self, title, str):
         QMessageBox.critical(None, title, str, QMessageBox.Yes)
+
+    def c2DoneVerify(self):
+        self.dsp_send_btn.setEnabled(True)
+        self.cmu_send_btn.setEnabled(True)
+
+    def dspListRightMenu(self, pos):
+        menu = QMenu()
+        attackAction = QAction(u'Simulate Attack', self)
+        menu.addAction(attackAction)
+        #sendMessageAction.triggered.connect(self.friendDoubleClicked)
+        attackAction.triggered.connect(lambda:self.simulateAttack(self.dsp_msg_list))
+
+        item = self.dsp_msg_list.selectedItems()[0]
+        menu.exec_(self.dsp_msg_list.mapToGlobal(pos))
+
+    def cmuListRightMenu(self, pos):
+        menu = QMenu()
+        attackAction = QAction(u'Simulate Attack', self)
+        menu.addAction(attackAction)
+        attackAction.triggered.connect(lambda:self.simulateAttack(self.cmu_msg_list))
+
+        item = self.cmu_msg_list.selectedItems()[0]
+        menu.exec_(self.cmu_msg_list.mapToGlobal(pos))
+
+    def msgTableRightMenu(self, pos):
+        #menu = QMenu()
+        #sendMessageAction = QAction(u'发送信息', self)
+        #deleteGroupAction = QAction(u'退出此群', self)
+        #dismissGroupAction = QAction(u'解散此群', self)
+        #sendMessageAction.triggered.connect(self.friendDoubleClicked)
+        #deleteGroupAction.triggered.connect(self.deleteGroup)
+        #dismissGroupAction.triggered.connect(self.dismissGroup)
+
+        #item = self.groupListWidget.selectedItems()[0]
+        #menu.addAction(sendMessageAction)
+        #if item.group_master == self.ownerInfo.get("account"):
+        #    menu.addAction(dismissGroupAction)
+        #else:
+        #    menu.addAction(deleteGroupAction)
+        row_num = -1
+        for i in self.msg_table.selectionModel().selection().indexes():
+            row_num = i.row()
+
+        if row_num < 500: # 表格生效的行数，501行点击右键，不会弹出菜单
+            menu = QMenu() #实例化菜单
+            attack = menu.addAction(u"Attack")
+            #item2 = menu.addAction(u"拷贝")
+            #item3 = menu.addAction(u"粘贴")
+
+            attack.triggered.connect(self.replayBlockAttack)
+
+            action = menu.exec_(self.msg_table.mapToGlobal(pos))
+        else:
+            return
+        
+    def clearAllItems(self):
+        self.msg_table.setRowCount(0)
+        self.dsp_msg_list.clear()
+        self.cmu_msg_list.clear()
+        self.dsp.clearItems()
+        self.cmu.clearItems()
+
+
 
 
 class TestStable(QtCore.QObject):
