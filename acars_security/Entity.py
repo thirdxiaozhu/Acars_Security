@@ -6,6 +6,7 @@ import Crypto_Util as Crypto
 import Message
 import Process
 import Protocol
+import deflate
 
 MODE_DSP = 220
 MODE_CMU = 210
@@ -123,7 +124,8 @@ class Entity:
         self.statu = self.WORKING
 
     def getDSPCert(self):
-        return Crypto.Security.getCert("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem")
+        cert = Crypto.Security.getCert("/home/jiaxv/inoproject/Acars_Security/users/dsp/dspcert.pem")
+        return deflate.gzip_compress(cert)
 
     def setSymmetricKeyandIV(self, key, iv):
         self._sym_key = key
@@ -135,7 +137,8 @@ class Entity:
     def symmetricDecrypt(self, cipher_text):
         return Crypto.Security.symmetricDecrypt(self._sym_key, self._iv, cipher_text)
 
-    def getSymKey(self, cert):
+    def getSymKey(self, comp_cert):
+        cert = deflate.gzip_decompress(comp_cert)
         ret = Crypto.Security.verifyCert(cert)
         if ret == 0:
             self._not_signal.emit("Success", "Verify DSP Certificate Success!")
@@ -201,15 +204,16 @@ class Entity:
 
         origin_text = dict.get("text")
 
-        processed_text = ""
+        processed_text = origin_text
         sign_text = ""
         sign_valide = Message.MSG_WITH_NO_SIGN
         cipher_text = ""
         if self._sec_level == Message.Message.NORMAL:
-            processed_text = origin_text
+            pass
         elif self._sec_level == Message.Message.CUSTOM:
             try:
                 to_text = Process.messageDecode(origin_text)
+
                 sign_len = to_text[0]
                 curr_len = 1+sign_len
                 sign_text = to_text[1:curr_len]
@@ -224,12 +228,12 @@ class Entity:
                 #收到“hello”
                 if self.custom2_statu == C2_WAIT_HANDSHAKE:
                     self.custom2_statu = C2_DSP_HELLO_RECEIVED
-                    processed_text = origin_text
+                    #processed_text = origin_text
                     self.putMessageParas(
                         [("2", "P8", self.getCurrentArn(), "A", "", "", self.getDSPCert(), "")])
                 elif self.custom2_statu == C2_DSP_CERT_SEND:
-                    processed_text = Process.messageDecode(origin_text)
-                    sym_key = Crypto.Security.decryptSymKey(processed_text)
+                    to_text = Process.messageDecode(origin_text)
+                    sym_key = Crypto.Security.decryptSymKey(to_text)
                     if sym_key is not None:
                         self._sym_key = sym_key.decode("latin1")
                         self.custom2_statu = C2_DONE
@@ -244,8 +248,8 @@ class Entity:
                 #收到地面站证书
                 if self.custom2_statu == C2_CMU_HELLO_SEND:
                     self.custom2_statu = C2_CMU_CERT_RECEIVED
-                    processed_text = Process.messageDecode(origin_text)
-                    (sym_key, enc_sym_key) = self.getSymKey(processed_text)
+                    to_text = Process.messageDecode(origin_text)
+                    (sym_key, enc_sym_key) = self.getSymKey(to_text)
                     #发送公钥加密后的对称密钥
                     if sym_key is not None:
                         self._sym_key = sym_key.decode("latin1")
@@ -274,14 +278,14 @@ class Entity:
         self.putMessageParasExec(paras_list, False)
 
     #根据安全模式进行预处理
-    def putMessageParasExec(self, paras_list, isReplay):
+    def putMessageParasExec(self, paras_list, normal_mod):
         print(paras_list)
         for paras in paras_list:
             text = paras[6]
 
             processed_text = ""
             final_text = ""
-            if self._sec_level == Message.Message.NORMAL or isReplay is True:
+            if self._sec_level == Message.Message.NORMAL or normal_mod is True:
                 final_text = text
             elif self._sec_level == Message.Message.CUSTOM:
                 cipher_text = self.symmetricEncrypt(text)
@@ -299,6 +303,8 @@ class Entity:
                 elif self.custom2_statu == C2_CMU_CERT_RECEIVED:
                     self.custom2_statu = C2_CMU_KEY_SEND
                     final_text = Process.messageEncode(text)
+
+                    print("'" + final_text + "'", "\n\n\n\n")
                 elif self.custom2_statu == C2_DONE:
                     cipher_text = self.symmetricEncrypt(text)
                     final_text = Process.messageEncode(cipher_text.encode("latin1"))

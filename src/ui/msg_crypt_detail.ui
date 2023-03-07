@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>665</width>
-    <height>507</height>
+    <height>575</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout" stretch="2,1,2,2,1">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="2,1,2,2,2,1">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <property name="topMargin">
@@ -115,12 +115,12 @@
          <item>
           <widget class="QLabel" name="label_6">
            <property name="text">
-            <string>Plaintext</string>
+            <string>Signature</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QTextEdit" name="plaintext_edit"/>
+          <widget class="QTextEdit" name="signature_edit"/>
          </item>
         </layout>
        </item>
@@ -134,12 +134,29 @@
        <item>
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Signature</string>
+          <string>Plaintext</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QTextEdit" name="signature_edit"/>
+        <widget class="QTextEdit" name="plaintext_edit"/>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>ARINC 620</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextBrowser" name="arinc620_edit"/>
        </item>
       </layout>
      </item>

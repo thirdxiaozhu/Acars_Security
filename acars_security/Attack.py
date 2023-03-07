@@ -7,12 +7,11 @@ from PyQt5.QtWidgets import *
 import Message
 
 class Attack(QtCore.QObject):
-    def __init__(self, dialog, item, dsp) -> None:
+    def __init__(self, dialog, item, entity) -> None:
         self.dialog = dialog
-        self.dsp = dsp
+        self.entity = entity
         self.msg = item.getMsgUnit()
         self.tuple = self.msg.getMsgTuple()
-        print(self.tuple)
         self.text_to_modi = ""
         self.sign_to_modi = ""
         self.label = ""
@@ -21,12 +20,8 @@ class Attack(QtCore.QObject):
 
     def initContents(self):
         self.label = self.tuple[4]
-
-        if self.label != "P8":
-            self.text_to_modi = self.tuple[10]
-        else:
-            self.text_to_modi = self.tuple[11].decode("latin1")
-            self.sign_to_modi = self.tuple[12].decode("latin1")
+        self.text_to_modi = self.tuple[9]
+        print("'" , self.text_to_modi, "'")
 
     def initComponent(self):
         text = """
@@ -51,20 +46,8 @@ class Attack(QtCore.QObject):
         self.signEdit.append(text % self.sign_to_modi)
 
     def send(self):
-        self.dsp.initHackRF()
-        msg_unit =  self.processMsg()
-        msg_unit.generateIQ()
-        self.dsp._hackrf_event.putMessage(msg_unit._IQdata)
-        self.dsp.startHackRF()
+        t = self.tuple
+        self.entity.putMessageParasExec([(t[3], t[4], t[5],t[6], t[7], t[8], self.textEdit.toPlainText(), "")], True)
 
 
-    def processMsg(self):
-        if self.label != "P8":
-            return Message.Message(self.tuple[:10] + (self.textEdit.toPlainText()[:-1], ))
-        else:
-            cipher_text = self.textEdit.toPlainText()[:-1]
-            sign_text = self.signEdit.toPlainText()[:-1]
-            processed_text = chr(len(cipher_text)) + chr(len(sign_text)) + cipher_text + sign_text
-
-            return Message.Message(self.tuple[:10] + (processed_text, ))
 

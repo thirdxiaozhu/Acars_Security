@@ -47,7 +47,7 @@ class Receiver:
         while True:
             data, xxx = self.udpServer.recvfrom(self.bufsize)
             data = data.decode("latin1")
-            #self.__logger.debug(data)
+            self.__logger.debug(data)
             self.protocol.receive(data)
 
 

@@ -1011,7 +1011,7 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -1330,6 +1330,11 @@ p, li { white-space: pre-wrap; }
                  <widget class="QComboBox" name="table_mode_filter_combo">
                   <item>
                    <property name="text">
+                    <string>All</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
                     <string>Uplink</string>
                    </property>
                   </item>
@@ -1380,7 +1385,11 @@ p, li { white-space: pre-wrap; }
                <number>0</number>
               </property>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_41"/>
+               <layout class="QHBoxLayout" name="horizontalLayout_41">
+                <item>
+                 <widget class="QListWidget" name="ca_certs_list"/>
+                </item>
+               </layout>
               </item>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_39" stretch="1,1">
@@ -1390,12 +1399,36 @@ p, li { white-space: pre-wrap; }
                 <item>
                  <layout class="QVBoxLayout" name="verticalLayout_19">
                   <item>
+                   <widget class="QLabel" name="label_18">
+                    <property name="font">
+                     <font>
+                      <pointsize>15</pointsize>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>DSP Certificates</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QListWidget" name="dsp_certs_list"/>
                   </item>
                  </layout>
                 </item>
                 <item>
                  <layout class="QVBoxLayout" name="verticalLayout_20">
+                  <item>
+                   <widget class="QLabel" name="label_19">
+                    <property name="font">
+                     <font>
+                      <pointsize>15</pointsize>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>CMU Certificates</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <widget class="QListWidget" name="cmu_certs_list"/>
                   </item>

@@ -1,4 +1,5 @@
 from ctypes import *
+import re
 
 
 MODE_DSP = 220
@@ -170,3 +171,34 @@ class CompleteMessage(Message):
 
     def getSignLen(self):
         return len(self._sign_text)
+    
+    def getArinc620(self):
+        dsp_620 = """
+            QU xxxxxxx<br/>
+            .DSPXXXX %.8s<br/>
+            DEP<br/>
+            AN %.7s<br/>
+             - %s
+        """
+
+        cmu_620 = """
+            QU xxxxxxx<br/>
+            .DSPXXXX %.8s<br/>
+            DEP<br/>
+            FI %.6s/AN %.7s<br/>
+            DT DSP LOCAL %.8s %4s<br/>
+             - %s
+        """
+
+
+        if self._up_down == 220:
+            return dsp_620 % (self._timestamp[11:20], self._ARN, self._processed_text)
+        else:
+            return cmu_620 % (self._timestamp[11:20], self._flight, self._ARN, self._timestamp, self._serial, self._processed_text)
+
+        
+        
+
+    def getMsgTuple(self):
+        pre_tuple = super().getMsgTuple()
+        return (pre_tuple[:9] + (self._origin_text, ))

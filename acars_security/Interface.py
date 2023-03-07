@@ -123,10 +123,12 @@ class Interface(QtCore.QObject):
 
         self.msg_table = self.mainWindow.findChild(QTableWidget, "msg_table")
         self.clear_all_table_item_btn = self.mainWindow.findChild(QPushButton, "clear_all_table_item_btn")
+        self.table_mode_filter_combo = self.mainWindow.findChild(QComboBox, "table_mode_filter_combo")
 
         self.confirm_symkey_btn = self.mainWindow.findChild(QPushButton, "confirm_symkey_btn")
         self.dsp_certs_list = self.mainWindow.findChild(QListWidget, "dsp_certs_list")
         self.cmu_certs_list = self.mainWindow.findChild(QListWidget, "cmu_certs_list")
+        self.ca_certs_list = self.mainWindow.findChild(QListWidget, "ca_certs_list")
 
 
         self.cmu_confirm_btn = self.mainWindow.findChild(QPushButton, "cmu_confirm_btn")
@@ -174,6 +176,7 @@ class Interface(QtCore.QObject):
         self.c2_done_verify_signal.connect(self.c2DoneVerify)
         self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
         self.cmu_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.cmu_certs_list))
+        self.ca_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.ca_certs_list))
 
         self.dsp_msg_list.itemDoubleClicked.connect(
             lambda: self.showMsgDetail(self.dsp_msg_list))
@@ -439,6 +442,8 @@ class Interface(QtCore.QObject):
         self.msg_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.msg_table.customContextMenuRequested.connect(
             self.msgTableRightMenu)
+        
+        self.table_mode_filter_combo.currentIndexChanged.connect(self.changeTableMode)
 
     def addMsgTableRow(self, paras):
         rows_c = self.msg_table.rowCount()
@@ -449,6 +454,24 @@ class Interface(QtCore.QObject):
             newItem = QTableWidgetItem(paras[i])
             self.msg_table.setItem(rows_c - 1,i,newItem)
 
+    def changeTableMode(self):
+        index = self.table_mode_filter_combo.currentIndex()
+        match_mode = None
+        if index == 0:
+            match_mode = ""
+        elif index == 1:
+            match_mode = "U"
+        elif index == 2:
+            match_mode = "D"
+
+        for i in range(self.msg_table.rowCount()):
+            is_match = False
+            item = self.msg_table.item(i, 1)
+            if item is not None and item.text() == match_mode:
+                is_match = True
+                break
+            self.msg_table.setRowHidden(i, not is_match)
+
 
     def double_click_table_view_item(self,qModelIndex):
         print(qModelIndex.row())
@@ -456,8 +479,10 @@ class Interface(QtCore.QObject):
     def initCertList(self):
         dsp_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/dsp"
         cmu_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/cmu"
+        ca_cert_path = "/home/jiaxv/inoproject/Acars_Security/users/ca"
         self.scanCerts(dsp_cert_path, self.dsp_certs_list)
         self.scanCerts(cmu_cert_path, self.cmu_certs_list)
+        self.scanCerts(ca_cert_path, self.ca_certs_list)
 
     def showCertDetail(self, component):
         item = component.selectedItems()[0]
@@ -526,15 +551,22 @@ class Interface(QtCore.QObject):
         else:
             self.cmu.putMessageParasExec([paras], True)
 
-    def simulateAttack(self, listwidget):
-        items = listwidget.selectedItems()
+    def simulateAttack(self, mode):
+        if mode == Message.MODE_DSP:
+            list_widget = self.dsp_msg_list
+            entity = self.cmu
+        else:
+            list_widget = self.cmu_msg_list
+            entity = self.dsp
 
+
+        items = list_widget.selectedItems()
         if len(items) > 0:
             item = items[0]
             dialog = QDialog()
             window = Ui.Ui_Attack.Ui_Form()
             window.setupUi(dialog)
-            attack = Attack.Attack(dialog, item, self.dsp)
+            Attack.Attack(dialog, item, entity)
             dialog.show()
             dialog.exec_()
         else:
@@ -564,7 +596,7 @@ class Interface(QtCore.QObject):
         attackAction = QAction(u'Simulate Attack', self)
         menu.addAction(attackAction)
         #sendMessageAction.triggered.connect(self.friendDoubleClicked)
-        attackAction.triggered.connect(lambda:self.simulateAttack(self.dsp_msg_list))
+        attackAction.triggered.connect(lambda:self.simulateAttack(Message.MODE_DSP))
 
         item = self.dsp_msg_list.selectedItems()[0]
         menu.exec_(self.dsp_msg_list.mapToGlobal(pos))
@@ -573,7 +605,7 @@ class Interface(QtCore.QObject):
         menu = QMenu()
         attackAction = QAction(u'Simulate Attack', self)
         menu.addAction(attackAction)
-        attackAction.triggered.connect(lambda:self.simulateAttack(self.cmu_msg_list))
+        attackAction.triggered.connect(lambda:self.simulateAttack(Message.MODE_CMU))
 
         item = self.cmu_msg_list.selectedItems()[0]
         menu.exec_(self.cmu_msg_list.mapToGlobal(pos))
@@ -773,6 +805,7 @@ class MsgDetail:
         self.signature_edit = self.dialog.findChild(QTextEdit, "signature_edit")
         self.cipher_len_line = self.dialog.findChild(QLineEdit, "cipher_len_line")
         self.sign_len_edit = self.dialog.findChild(QLineEdit, "sign_len_edit")
+        self.arinc620_edit = self.dialog.findChild(QTextEdit, "arinc620_edit")
 
         detail = """
         <div>
@@ -786,5 +819,7 @@ class MsgDetail:
         self.signature_edit.append(detail % (self.msg.getSignText()))
         self.cipher_len_line.setText(str(self.msg.getCipherLen()))
         self.sign_len_edit.setText(str(self.msg.getSignLen()))
+        self.arinc620_edit.setText(detail % self.msg.getArinc620())
+
 
 
