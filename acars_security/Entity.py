@@ -44,6 +44,7 @@ class Entity:
         self._test_signal = None
         self._not_signal = None
         self._c2_done_veri_signal = None 
+        self._c2_sym_key_signal = None
         self._sec_level = 0
         self.entity_num = None
         self._cert_key = None
@@ -88,11 +89,12 @@ class Entity:
     def genEntityNum(self):
         return self.entity_num
 
-    def putSignals(self, blk_signal, com_signal, notification_signal, c2_done_verify_signal):
+    def putSignals(self, blk_signal, com_signal, notification_signal, c2_done_verify_signal, c2_sym_key_gen_signal):
         self._blk_signal = blk_signal
         self._com_signal = com_signal
         self._not_signal = notification_signal
         self._c2_done_veri_signal = c2_done_verify_signal
+        self._c2_sym_key_signal = c2_sym_key_gen_signal
 
     def putTestingSignal(self, signal):
         self._test_signal = signal
@@ -150,28 +152,6 @@ class Entity:
     def clearItems(self):
         self.protocol.clearItems()
 
-    #收到数据块
-    #def receiveBlock(self, dict):
-    #    if dict.get("statu") != 1000:
-    #        self._not_signal.emit("Wrong", dict.get("errormsg"))
-    #        return None
-    #    try:
-    #        timestamp = dict.get("timestamp")
-    #        timestamp = datetime.fromtimestamp(
-    #            timestamp).strftime("%Y-%m-%d %H:%M:%S.%f")
-    #        ack = "" if dict.get("ack") == False else dict.get("ack")
-    #        try:
-    #            orient = MODE_DSP if re.compile(
-    #                r"[A-Za-z]").match(dict.get("block_id")) else MODE_CMU
-    #        except:
-    #            orient = MODE_ELSE
-
-    #        msg = Message.Message((timestamp, orient, self._sec_level, dict.get("mode"), dict.get("label"), dict.get("tail"),
-    #                               dict.get("block_id"), ack,  dict.get("flight"), dict.get("text"), dict.get("msgno"), dict.get("crc")[:2], dict.get("end")))
-    #    except Exception:
-    #        msg = None
-
-    #    return msg
     
     def interpreteBlock(self, dict):
         if dict.get("statu") != 1000:
@@ -253,6 +233,8 @@ class Entity:
                     #发送公钥加密后的对称密钥
                     if sym_key is not None:
                         self._sym_key = sym_key.decode("latin1")
+                        self._c2_sym_key_signal.emit(self._sym_key)
+                        
                         self.putMessageParas(
                             [("2", "P8", self.getArn(), "2", "", self.getId(), enc_sym_key, "")])
                         self.custom2_statu = C2_DONE

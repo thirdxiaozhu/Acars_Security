@@ -4,8 +4,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import Message
-
 class Attack(QtCore.QObject):
     def __init__(self, dialog, item, entity) -> None:
         self.dialog = dialog

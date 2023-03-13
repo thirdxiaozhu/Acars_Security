@@ -36,11 +36,13 @@ class Interface(QtCore.QObject):
     add_complete_msg_signal = QtCore.pyqtSignal(object, int)
     notification_signal = QtCore.pyqtSignal(str, str)
     c2_done_verify_signal = QtCore.pyqtSignal()
+    c2_sym_key_gen_signal = QtCore.pyqtSignal(str)
     
    
 
     def __init__(self, mainWindow) -> None:
         super(Interface, self).__init__()
+        self.sec_mod = None
         self.mainWindow = mainWindow
         self.dsp = Entity.DSP()
         self.cmu = Entity.CMU()
@@ -50,8 +52,8 @@ class Interface(QtCore.QObject):
         self.getDevices()
         self.reInitDeviceCombos(ALL)
 
-        self.dsp.putSignals(self.add_block_signal, self.add_complete_msg_signal, self.notification_signal, self.c2_done_verify_signal)
-        self.cmu.putSignals(self.add_block_signal, self.add_complete_msg_signal, self.notification_signal, self.c2_done_verify_signal)
+        self.dsp.putSignals(self.add_block_signal, self.add_complete_msg_signal, self.notification_signal, self.c2_done_verify_signal, self.c2_sym_key_gen_signal)
+        self.cmu.putSignals(self.add_block_signal, self.add_complete_msg_signal, self.notification_signal, self.c2_done_verify_signal, self.c2_sym_key_gen_signal)
         self.dsp.setCAEntity(self.ca)
         self.cmu.setCAEntity(self.ca)
 
@@ -133,8 +135,10 @@ class Interface(QtCore.QObject):
 
         self.cmu_confirm_btn = self.mainWindow.findChild(QPushButton, "cmu_confirm_btn")
 
+        self.sec_mod_label = self.mainWindow.findChild(QLabel, "sec_mod_label")
         self.cus_handshake_btn = self.mainWindow.findChild(QPushButton, "cus_handshake_btn")
         self.cus_handshake_btn.setEnabled(False)
+        self.cus2_sym_edit = self.mainWindow.findChild(QLineEdit, "cus2_sym_edit")
 
         self.action_save = self.mainWindow.findChild(QAction, "action_save")
         self.action_load = self.mainWindow.findChild(QAction, "action_load")
@@ -174,6 +178,7 @@ class Interface(QtCore.QObject):
         self.add_complete_msg_signal.connect(self.addCompleteMsg)
         self.notification_signal.connect(self.showNotification)
         self.c2_done_verify_signal.connect(self.c2DoneVerify)
+        self.c2_sym_key_gen_signal.connect(self.c2PutSymKey)
         self.dsp_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.dsp_certs_list))
         self.cmu_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.cmu_certs_list))
         self.ca_certs_list.itemDoubleClicked.connect(lambda: self.showCertDetail(self.ca_certs_list))
@@ -273,6 +278,7 @@ class Interface(QtCore.QObject):
             self.dsp.setHostAndPort(self.dsp_addr_edit.text())
             self.dsp.initRtl()
             self.dsp.initHackRF()
+            self.dsp_start_btn.setEnabled(False)
             #self.dsp.setHackRF(seria)
 
         elif mode == Entity.MODE_CMU:
@@ -282,6 +288,7 @@ class Interface(QtCore.QObject):
             self.cmu.setHostAndPort(self.cmu_addr_edit.text())
             self.cmu.initRtl()
             self.cmu.initHackRF()
+            self.cmu_start_btn.setEnabled(False)
             #self.cmu.setHackRF()
 
     #停止设备
@@ -364,7 +371,7 @@ class Interface(QtCore.QObject):
             #else:
             #    ackInput = "%c" % (0x15)
 
-        if self.getSecurityMode() == Message.Message.NORMAL:
+        if self.sec_mod == Message.Message.NORMAL:
             if len(labelInput) > 2:
                 QMessageBox.critical(None, "Error", "Length of label more than 2!", QMessageBox.Yes)
                 return FAIL
@@ -413,14 +420,21 @@ class Interface(QtCore.QObject):
         dialog.show()
         dialog.exec_()
 
-    def getSecurityMode(self):
+    def setSecurityMode(self):
         index = self.security_mode_combo.currentIndex()
+        mod_str = ""
         if index == 0:
-            return Message.Message.NORMAL
+            mod_str = "Non-Processing"
+            self.sec_mod = Message.Message.NORMAL
         elif index == 1:
-            return Message.Message.CUSTOM
+            mod_str = "Successive Authentication"
+            self.sec_mod = Message.Message.CUSTOM
         elif index == 2:
-            return Message.Message.CUSTOM2
+            mod_str = "Trans-Layer Processing"
+            self.sec_mod = Message.Message.CUSTOM2
+        
+        self.sec_mod_label.setText(mod_str)
+        QMessageBox.information(self.mainWindow, "Mode Changed", "The Security Mode has changed to %s" % mod_str, QMessageBox.Yes)
 
     def initMsgList(self):
         self.dsp_msg_list.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -505,12 +519,12 @@ class Interface(QtCore.QObject):
         self.dsp.setSymmetricKeyandIV(key, iv)
         self.cmu.setSymmetricKeyandIV(key, iv)
 
-        sec_level = self.getSecurityMode()
+        self.setSecurityMode()
 
-        self.dsp.setSecurityLevel(sec_level)
-        self.cmu.setSecurityLevel(sec_level)
+        self.dsp.setSecurityLevel(self.sec_mod)
+        self.cmu.setSecurityLevel(self.sec_mod)
 
-        if sec_level == Message.Message.CUSTOM2:
+        if self.sec_mod == Message.Message.CUSTOM2:
             self.dsp_send_btn.setEnabled(False)
             self.cmu_send_btn.setEnabled(False)
             self.cus_handshake_btn.setEnabled(True)
@@ -577,6 +591,7 @@ class Interface(QtCore.QObject):
         arn = self.cmu_arn_edit.text()
         id = self.cmu_id_edit.text()
         self.cmu.setArnandId(arn, id)
+        self.cmu_confirm_btn.setEnabled(False)
 
 
     def cus2Handshake(self):
@@ -590,6 +605,9 @@ class Interface(QtCore.QObject):
     def c2DoneVerify(self):
         self.dsp_send_btn.setEnabled(True)
         self.cmu_send_btn.setEnabled(True)
+
+    def c2PutSymKey(self, str):
+        self.cus2_sym_edit.setText(str)
 
     def dspListRightMenu(self, pos):
         menu = QMenu()
